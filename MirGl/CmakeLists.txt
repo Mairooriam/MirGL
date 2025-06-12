@@ -1,0 +1,17 @@
+
+find_package(OpenGL REQUIRED)
+set(EXTERNAL_LIBS
+  glad
+  glfw
+  OpenGL::GL
+  glm
+  spdlog::spdlog
+)
+
+add_executable(MirGl src/main.cpp)
+
+target_link_libraries(MirGl PRIVATE ${EXTERNAL_LIBS})
+
+target_include_directories(MirGl PRIVATE 
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)

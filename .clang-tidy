@@ -1,0 +1,80 @@
+---
+Checks: >
+  *,
+  -fuchsia-*,
+  -google-*,
+  -zircon-*,
+  -abseil-*,
+  -modernize-use-trailing-return-type,
+  -llvm-*,
+  -llvmlibc-*,
+  -misc-non-private-member-variables-in-classes,
+  -readability-identifier-length,
+  -altera-*,
+  -hicpp-braces-around-statements,
+  -readability-braces-around-statements,
+  -cppcoreguidelines-pro-bounds-pointer-arithmetic,
+  -cppcoreguidelines-pro-type-reinterpret-cast,
+  -cppcoreguidelines-avoid-non-const-global-variables,
+  -cppcoreguidelines-pro-bounds-constant-array-index,
+  -bugprone-easily-swappable-parameters,
+  -cert-err58-cpp
+
+WarningsAsErrors: ''
+HeaderFilterRegex: '.*'
+AnalyzeTemporaryDtors: false
+FormatStyle: 'file'
+User: user
+
+CheckOptions:
+  # Naming conventions
+  - key: readability-identifier-naming.ClassCase
+    value: CamelCase
+  - key: readability-identifier-naming.ConstexprVariableCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.EnumCase
+    value: CamelCase
+  - key: readability-identifier-naming.FunctionCase
+    value: camelBack
+  - key: readability-identifier-naming.MemberCase
+    value: camelBack
+  - key: readability-identifier-naming.MemberSuffix
+    value: '_'
+  - key: readability-identifier-naming.ParameterCase
+    value: camelBack
+  - key: readability-identifier-naming.VariableCase
+    value: camelBack
+  - key: readability-identifier-naming.ConstantCase
+    value: UPPER_CASE
+  - key: readability-identifier-naming.NamespaceCase
+    value: CamelCase
+  - key: readability-identifier-naming.TemplateParameterCase
+    value: CamelCase
+  - key: readability-identifier-naming.TypeAliasCase
+    value: CamelCase
+  
+  # Complexity limits
+  - key: readability-function-cognitive-complexity.Threshold
+    value: 25
+  - key: readability-function-size.LineThreshold
+    value: 100
+  - key: readability-function-size.StatementThreshold
+    value: 50
+  
+  # Magic numbers
+  - key: readability-magic-numbers.IgnoredIntegerValues
+    value: '1;2;3;4;0;-1'
+  - key: readability-magic-numbers.IgnoredFloatingPointValues
+    value: '0.0;1.0;2.0;0.5;1.5'
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoredIntegerValues
+    value: '1;2;3;4;0;-1'
+  - key: cppcoreguidelines-avoid-magic-numbers.IgnoredFloatingPointValues
+    value: '0.0;1.0;2.0;0.5;1.5'
+    
+  # Miscellaneous
+  - key: misc-unused-parameters.StrictMode
+    value: true
+  - key: performance-unnecessary-copy-initialization.AllowedTypes
+    value: 'std::function;std::shared_ptr;std::unique_ptr'
+  - key: modernize-use-nullptr.NullMacros
+    value: 'NULL;nullptr'

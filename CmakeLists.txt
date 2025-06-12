@@ -1,0 +1,41 @@
+cmake_minimum_required(VERSION 3.10)
+project(MirGL VERSION 0.1.0 LANGUAGES C CXX)
+
+set(CMAKE_CXX_STANDARD 23)
+set(CMAKE_CXX_STANDARD_REQUIRED ON)
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+set(CMAKE_ARCHIVE_OUTPUT_DIRECTORY ${CMAKE_BINARY_DIR}/lib)
+if(MSVC)
+  add_compile_options(/W4 /WX)
+else()
+  add_compile_options(-Wall -Wextra -Wpedantic)
+endif()
+
+add_subdirectory(external)
+add_subdirectory(MirGl)
+
+option(BUILD_TESTS "Build tests" ON)
+if(BUILD_TESTS)
+    enable_testing()
+    add_subdirectory(MirGl/tests)
+    
+    add_custom_target(run_tests ALL
+        COMMAND ${CMAKE_CTEST_COMMAND} --output-on-failure
+        DEPENDS MirGL_tests
+        COMMENT "Running tests automatically after build"
+        WORKING_DIRECTORY ${CMAKE_BINARY_DIR}
+    )
+endif()
+
+option(ENABLE_CLANG_TIDY "Enable clang-tidy checks during build" ON)
+if(ENABLE_CLANG_TIDY)
+    find_program(CLANG_TIDY_EXE NAMES "clang-tidy")
+    if(CLANG_TIDY_EXE)
+        set(CMAKE_CXX_CLANG_TIDY ${CLANG_TIDY_EXE})
+        message(STATUS "clang-tidy enabled")
+    else()
+        message(WARNING "clang-tidy requested but executable not found")
+    endif()
+endif()
+
