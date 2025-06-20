@@ -8,7 +8,14 @@ set(EXTERNAL_LIBS
   spdlog::spdlog
 )
 
-add_executable(MirGl src/main.cpp)
+set(SOURCES
+    src/main.cpp
+    src/OpenglWindow.cpp
+    src/log.cpp
+
+)
+
+add_executable(MirGl ${SOURCES})
 
 target_link_libraries(MirGl PRIVATE ${EXTERNAL_LIBS})
 
