@@ -6,12 +6,14 @@ set(EXTERNAL_LIBS
   OpenGL::GL
   glm
   spdlog::spdlog
+  imgui
 )
 
 set(SOURCES
     src/main.cpp
     src/OpenglWindow.cpp
     src/log.cpp
+    src/ImGuiLayer.cpp
 
 )
 
@@ -20,5 +22,13 @@ add_executable(MirGl ${SOURCES})
 target_link_libraries(MirGl PRIVATE ${EXTERNAL_LIBS})
 
 target_include_directories(MirGl PRIVATE 
+  ${CMAKE_CURRENT_SOURCE_DIR}/include
+)
+
+add_executable(example src/example.cpp )
+
+target_link_libraries(example PRIVATE imgui glfw OpenGL::GL)
+
+target_include_directories(example PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )

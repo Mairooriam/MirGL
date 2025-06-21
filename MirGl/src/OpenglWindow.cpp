@@ -1,6 +1,10 @@
 #include "OpenglWindow.h"
 #include "log.h"
 
+#include "imgui.h"
+#include "imgui_impl_glfw.h"
+#include "imgui_impl_opengl3.h"
+#include <stdio.h>
 namespace Mir {
     void framebuffer_size_callback(GLFWwindow* /*window*/, int width, int height) {
         glViewport(0, 0, width, height);
@@ -11,26 +15,35 @@ namespace Mir {
             glfwSetWindowShouldClose(m_window, true);
     }
 
+    static void glfw_error_callback(int error, const char* description)
+    {
+        fprintf(stderr, "GLFW Error %d: %s\n", error, description);
+    }
+
+
     Window::Window(int w_, int h_, const char* name_) {
         glfwInit();
         glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
         glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
+        glfwWindowHint(GLFW_VISIBLE, GLFW_TRUE);
+        glfwSetErrorCallback(glfw_error_callback);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
 
-        m_window = glfwCreateWindow(w_, h_, name_, NULL, NULL);
-        if (m_window == NULL) {
+        m_window = glfwCreateWindow(w_, h_, name_, nullptr, nullptr);
+        if (m_window == nullptr) {
             MIR_ERROR("Failed to create GLFW window");
             glfwTerminate();
         }
         glfwMakeContextCurrent(m_window);
-
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
             MIR_ERROR("Failed to initialize GLAD");
 
         glViewport(0, 0, 800, 600);
-
+       
         glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback);
+
+        m_imguiLayer = std::make_unique<ImGuiLayer>(m_window);
     }
 
     void Window::render() {
@@ -99,8 +112,6 @@ namespace Mir {
             glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
             MIR_ERROR("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {0}", infoLog);
         }
-       
-        
 
         unsigned int shaderProgram;
         shaderProgram = glCreateProgram();
@@ -132,23 +143,44 @@ namespace Mir {
         glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
         glEnableVertexAttribArray(0);  
 
+
+
         while (!glfwWindowShouldClose(m_window)) {
             processInput();
-
-            glClearColor(0.2f, 0.3f, 0.3f, 1.0f);
+            glfwPollEvents();
+            // Make main OpenGL context current
+            glfwMakeContextCurrent(m_window);
+            
+            // Clear framebuffer with UI-controlled color
+            glClearColor(
+                m_renderState.clearColor[0], 
+                m_renderState.clearColor[1], 
+                m_renderState.clearColor[2], 
+                m_renderState.clearColor[3]
+            );
             glClear(GL_COLOR_BUFFER_BIT);
-        glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+            
+            // Draw your OpenGL content with UI-controlled settings
+            glPolygonMode(GL_FRONT_AND_BACK, m_renderState.polygonMode);
             glUseProgram(shaderProgram);
             glBindVertexArray(VAO);
-            glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+            glDrawArrays(GL_TRIANGLES, 0, 6);
             glBindVertexArray(0);
-
-            glfwPollEvents();
+            
+            m_imguiLayer->begin();
+            m_imguiLayer->render(m_renderState);
+            m_imguiLayer->End();
+            // Swap buffers
             glfwSwapBuffers(m_window);
         }
     }
 
     Window::~Window() {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+        
         glfwTerminate();
     }
 
