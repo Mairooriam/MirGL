@@ -5,6 +5,8 @@
 #include "imgui_impl_glfw.h"
 #include "imgui_impl_opengl3.h"
 #include <stdio.h>
+#include <iostream>
+#include "shader.h"
 namespace Mir {
     void framebuffer_size_callback(GLFWwindow* /*window*/, int width, int height) {
         glViewport(0, 0, width, height);
@@ -40,111 +42,61 @@ namespace Mir {
             MIR_ERROR("Failed to initialize GLAD");
 
         glViewport(0, 0, 800, 600);
-       
+        
         glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback);
-
+        
         m_imguiLayer = std::make_unique<ImGuiLayer>(m_window);
     }
+    
 
+
+    
     void Window::render() {
-    //    float vertices[] = {
-    //        -0.5f, -0.5f, 0.0f,
-    //        0.5f, -0.5f, 0.0f,
-    //        0.0f,  0.5f, 0.0f
-    //    }; 
-        float vertices[] = {
-            0.5f,  0.5f, 0.0f,  // top right
-            0.5f, -0.5f, 0.0f,  // bottom right
-            -0.5f, -0.5f, 0.0f,  // bottom left
-            -0.5f,  0.5f, 0.0f   // top left 
+
+        float firstTriangle[] = {
+            -0.9f, -0.5f, 0.0f,  // left 
+            -0.0f, -0.5f, 0.0f,  // right
+            -0.45f, 0.5f, 0.0f,  // top 
         };
-        unsigned int indices[] = {  // note that we start from 0!
-            0, 1, 3,   // first triangle
-            1, 2, 3    // second triangle
+        float secondTriangle[] = {
+            0.0f, -0.5f, 0.0f,  // left
+            0.9f, -0.5f, 0.0f,  // right
+            0.45f, 0.5f, 0.0f   // top 
         };
-        unsigned int EBO;
-        glGenBuffers(1, &EBO);
+        unsigned int indices[] = {
+            0, 1, 2,  // first triangle
+            1, 4, 5,  // third triangle (using vertices from both triangles)
+            3, 4, 5   // second triangle
+        };
         
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-        unsigned int VBO;
-        glGenBuffers(1, &VBO);  
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);  
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
+
+        unsigned int VBOs[2], VAOs[2];
+        glGenVertexArrays(2, VAOs); // we can also generate multiple VAOs or buffers at the same time
+        glGenBuffers(2, VBOs);
+        // first triangle setup
+        // --------------------
+        glBindVertexArray(VAOs[0]);
+        glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
+        glBufferData(GL_ARRAY_BUFFER, sizeof(firstTriangle), firstTriangle, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);	// Vertex attributes stay the same
+        glEnableVertexAttribArray(0);
+        // glBindVertexArray(0); // no need to unbind at all as we directly bind a different VAO the next few lines
+        // second triangle setup
+        // ---------------------
+        glBindVertexArray(VAOs[1]);	// note that we bind to a different VAO now
+        glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);	// and a different VBO
+        glBufferData(GL_ARRAY_BUFFER, sizeof(secondTriangle), secondTriangle, GL_STATIC_DRAW);
+        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 0, (void*)0); // because the vertex data is tightly packed we can also specify 0 as the vertex attribute's stride to let OpenGL figure it out
+        glEnableVertexAttribArray(0);
+        // glBindVertexArray(0); // not really necessary as well, but beware of calls that could affect VAOs while this one is bound (like binding element buffer objects, or enabling/disabling vertex attributes)
+
         
-        const char *vertexShaderSource = "#version 330 core\n"
-            "layout (location = 0) in vec3 aPos;\n"
-            "void main()\n"
-            "{\n"
-            "   gl_Position = vec4(aPos.x, aPos.y, aPos.z, 1.0);\n"
-            "}\0";
-
-        unsigned int vertexShader;
-        vertexShader = glCreateShader(GL_VERTEX_SHADER);
-        glShaderSource(vertexShader, 1, &vertexShaderSource, NULL);
-        glCompileShader(vertexShader);
-        
-        int  success;
-        char infoLog[512];
-        glGetShaderiv(vertexShader, GL_COMPILE_STATUS, &success);
-        
-        if(!success)
-        {
-            glGetShaderInfoLog(vertexShader, 512, NULL, infoLog);
-            MIR_ERROR("ERROR::SHADER::VERTEX::COMPILATION_FAILED {0}", infoLog);
-        }
+        int nrAttributes;
+        glGetIntegerv(GL_MAX_VERTEX_ATTRIBS, &nrAttributes);
+        std::cout << "Maximum nr of vertex attributes supported: " << nrAttributes << std::endl;
 
 
-        const char *fragmentShaderSource = "#version 330 core\n"
-            "out vec4 FragColor;\n"
-            "\n"
-            "void main()\n"
-            "{\n"
-            "    FragColor = vec4(1.0f, 0.5f, 0.2f, 1.0f);\n"
-            "}\0";
-
-        unsigned int fragmentShader;
-        fragmentShader = glCreateShader(GL_FRAGMENT_SHADER);
-        glShaderSource(fragmentShader, 1, &fragmentShaderSource, NULL);
-        glCompileShader(fragmentShader);
-
-        glGetShaderiv(fragmentShader, GL_COMPILE_STATUS, &success);
-        if (!success) {
-            glGetShaderInfoLog(fragmentShader, 512, NULL, infoLog);
-            MIR_ERROR("ERROR::SHADER::FRAGMENT::COMPILATION_FAILED {0}", infoLog);
-        }
-
-        unsigned int shaderProgram;
-        shaderProgram = glCreateProgram();
-        glAttachShader(shaderProgram, vertexShader);
-        glAttachShader(shaderProgram, fragmentShader);
-        glLinkProgram(shaderProgram);
-
-        glGetProgramiv(shaderProgram, GL_LINK_STATUS, &success);
-        if(!success) {
-            glGetProgramInfoLog(shaderProgram, 512, NULL, infoLog);
-            MIR_ERROR("ERROR::SHADER::PROGRAM::LINKING_FAILED {0}", infoLog);
-        }
-
-        glUseProgram(shaderProgram);
-
-        glDeleteShader(vertexShader);
-        glDeleteShader(fragmentShader);  
-
-        unsigned int VAO;
-        glGenVertexArrays(1, &VAO);  
-        glBindVertexArray(VAO);
-        // 2. copy our vertices array in a vertex buffer for OpenGL to use
-        glBindBuffer(GL_ARRAY_BUFFER, VBO);
-        glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-        // 3. copy our index array in a element buffer for OpenGL to use
-        glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
-        glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof(indices), indices, GL_STATIC_DRAW);
-        // 4. then set the vertex attributes pointers
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);  
-
-
-
+        Shader shader("shader.fs", "shader.vs");
         while (!glfwWindowShouldClose(m_window)) {
             processInput();
             glfwPollEvents();
@@ -162,10 +114,11 @@ namespace Mir {
             
             // Draw your OpenGL content with UI-controlled settings
             glPolygonMode(GL_FRONT_AND_BACK, m_renderState.polygonMode);
-            glUseProgram(shaderProgram);
-            glBindVertexArray(VAO);
-            //glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-            glDrawArrays(GL_TRIANGLES, 0, 6);
+            shader.use();
+            glBindVertexArray(VAOs[0]);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
+            glBindVertexArray(VAOs[1]);
+            glDrawArrays(GL_TRIANGLES, 0, 3);
             glBindVertexArray(0);
             
             m_imguiLayer->begin();

@@ -14,6 +14,7 @@ set(SOURCES
     src/OpenglWindow.cpp
     src/log.cpp
     src/ImGuiLayer.cpp
+    src/shader.cpp
 
 )
 
@@ -23,6 +24,8 @@ target_link_libraries(MirGl PRIVATE ${EXTERNAL_LIBS})
 
 target_include_directories(MirGl PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
+
 )
 
 add_executable(example src/example.cpp )
@@ -32,3 +35,23 @@ target_link_libraries(example PRIVATE imgui glfw OpenGL::GL)
 target_include_directories(example PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
+
+
+
+
+file(GLOB SHADER_FILES 
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.vs
+    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.fs
+)
+
+foreach(SHADER_FILE ${SHADER_FILES})
+    get_filename_component(FILENAME ${SHADER_FILE} NAME)
+    add_custom_command(
+        TARGET MirGl POST_BUILD
+        COMMAND ${CMAKE_COMMAND} -E copy
+                ${SHADER_FILE}
+                $<TARGET_FILE_DIR:MirGl>/${FILENAME}
+        COMMENT "Copying shader file ${FILENAME}"
+    )
+endforeach()
+
