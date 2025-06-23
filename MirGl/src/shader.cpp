@@ -63,7 +63,7 @@ namespace Mir {
         glGetProgramiv(m_id, GL_LINK_STATUS, &success);
         if (!success) {
             glGetProgramInfoLog(m_id, 512, NULL, infoLog);
-            MIR_ERROR("ERROR::SHADER::PROGRAM::LINKING_FAILED {0}", infoLog);
+            std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED {}" <<  infoLog << "\n";
         }
 
         glDeleteShader(vertexShader.value());
@@ -90,7 +90,9 @@ namespace Mir {
     void Shader::setFloat(const std::string& name, float value) const {
         glUniform1f(glGetUniformLocation(m_id, name.c_str()), value);
     }
-
+    void Shader::setVec4(const std::string& name, const glm::vec4& value) const {
+        glUniform4fv(glGetUniformLocation(m_id, name.c_str()), 1, &value[0]);
+    }
     auto Shader::compileShader(GLenum type, const char* source)
         -> std::expected<unsigned int, std::string> {
         unsigned int shader = glCreateShader(type);

@@ -15,6 +15,8 @@ set(SOURCES
     src/log.cpp
     src/ImGuiLayer.cpp
     src/shader.cpp
+    src/Examples/ColorTriangle.cpp
+    src/Examples/AnimatedTriangle.cpp
 
 )
 
@@ -22,36 +24,37 @@ add_executable(MirGl ${SOURCES})
 
 target_link_libraries(MirGl PRIVATE ${EXTERNAL_LIBS})
 
+# Improve include path handling
 target_include_directories(MirGl PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
+  ${CMAKE_CURRENT_SOURCE_DIR}/src
   ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
-
-)
-
-add_executable(example src/example.cpp )
-
-target_link_libraries(example PRIVATE imgui glfw OpenGL::GL)
-
-target_include_directories(example PRIVATE 
-  ${CMAKE_CURRENT_SOURCE_DIR}/include
 )
 
 
 
-
-file(GLOB SHADER_FILES 
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.vs
-    ${CMAKE_CURRENT_SOURCE_DIR}/src/*.fs
+file(GLOB_RECURSE SHADER_FILES_VS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/*.vs"
+)
+file(GLOB_RECURSE SHADER_FILES_FS CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/*.fs"
 )
 
+set(SHADER_FILES ${SHADER_FILES_VS} ${SHADER_FILES_FS})
+
+# Only copy files that exist
 foreach(SHADER_FILE ${SHADER_FILES})
-    get_filename_component(FILENAME ${SHADER_FILE} NAME)
-    add_custom_command(
-        TARGET MirGl POST_BUILD
-        COMMAND ${CMAKE_COMMAND} -E copy
-                ${SHADER_FILE}
-                $<TARGET_FILE_DIR:MirGl>/${FILENAME}
-        COMMENT "Copying shader file ${FILENAME}"
-    )
+    if(EXISTS "${SHADER_FILE}")
+        get_filename_component(FILENAME ${SHADER_FILE} NAME)
+        add_custom_command(
+            TARGET MirGl POST_BUILD
+            COMMAND ${CMAKE_COMMAND} -E copy_if_different
+                    ${SHADER_FILE}
+                    $<TARGET_FILE_DIR:MirGl>/${FILENAME}
+            COMMENT "Copying shader file ${FILENAME}"
+        )
+    else()
+        message(WARNING "Shader file not found: ${SHADER_FILE}")
+    endif()
 endforeach()
 

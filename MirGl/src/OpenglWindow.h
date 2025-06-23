@@ -4,12 +4,17 @@
 #include <string>
 #include "ImGuiLayer.h"
 #include <memory>
+#include "Examples/IExample.h"
+#include <memory>
+#include "Examples/ExampleManager.h"
 namespace Mir
 {
     struct RenderState {
         GLenum polygonMode = GL_LINE;
         bool showWireframe = true;
         float clearColor[4] = {0.2f, 0.3f, 0.3f, 1.0f};
+        size_t selectedExample;
+        ExampleManager* exampleManager;
     };
 
     class Window
@@ -18,12 +23,16 @@ namespace Mir
         GLFWwindow* m_window; 
         std::unique_ptr<ImGuiLayer> m_imguiLayer;
         RenderState m_renderState;
+        std::vector<std::unique_ptr<IExample>> m_examples;
+        ExampleManager m_exampleManager;
     private:
         void processInput();
     public:
         Window(int w = 800, int h = 600, const char* name = "Learning OpenGL");
         void render();
-
+        void addExample(std::unique_ptr<IExample> example);
+        void selectExample(size_t index);
+        ExampleManager& getExampleManager() { return m_exampleManager; }
         ~Window();
     };
     

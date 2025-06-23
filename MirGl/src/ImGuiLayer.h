@@ -15,6 +15,7 @@ namespace Mir
         ImGuiLayer(GLFWwindow* window);
         ~ImGuiLayer();
         void render(RenderState& state);
+        void terminate();
         void begin();
         void End();
     };

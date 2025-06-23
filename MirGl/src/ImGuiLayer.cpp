@@ -33,9 +33,7 @@ namespace Mir
     }
 
     ImGuiLayer::~ImGuiLayer() {
-        ImGui_ImplOpenGL3_Shutdown();
-        ImGui_ImplGlfw_Shutdown();
-        ImGui::DestroyContext();
+
     }
     
     void ImGuiLayer::begin() {
@@ -77,7 +75,22 @@ namespace Mir
                 state.polygonMode = state.showWireframe ? GL_LINE : GL_FILL;
             }
             ImGui::ColorEdit3("Clear Color", state.clearColor);
+            
+        for (size_t i = 0; i < state.exampleManager->count(); i++) {
+            const char* name = state.exampleManager->examples[i]->getName();
+            bool isSelected = (i == state.exampleManager->currentIndex);
+            
+            if (ImGui::RadioButton(name, isSelected)) {
+                state.exampleManager->selectExample(i);
+            }
+        }
+
             ImGui::End();
         }
     }
-} // namespace Mir
+    void ImGuiLayer::terminate() {
+        ImGui_ImplOpenGL3_Shutdown();
+        ImGui_ImplGlfw_Shutdown();
+        ImGui::DestroyContext();
+    }
+}  // namespace Mir
