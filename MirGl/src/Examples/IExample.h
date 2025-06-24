@@ -14,7 +14,7 @@ public:
     virtual void render() = 0;
     virtual void cleanup() = 0;
     
-    virtual void processInput(GLFWwindow* window) { }
+    //virtual void processInput(GLFWwindow* window) { }
     
     virtual const char* getName() const = 0;
 

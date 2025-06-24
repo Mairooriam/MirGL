@@ -72,7 +72,6 @@ void Window::render() {
         
         // Make main OpenGL context current
         glfwMakeContextCurrent(m_window);
-        int i = 6;
         // Clear framebuffer with UI-controlled color
         glClearColor(
             m_renderState.clearColor[0], 
