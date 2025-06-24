@@ -1,4 +1,5 @@
 #include "Examples/AnimatedTriangle.h"
+#include "imgui.h"
 #include "log.h"
 
 namespace Mir {
@@ -38,11 +39,26 @@ void AnimatedTriangleExample::setup() {
 }
 
 void AnimatedTriangleExample::render() {
-    float timeValue = glfwGetTime();
-    float greenValue = (sin(timeValue) / 2.0f) + 0.5f;
+    float timeValue = glfwGetTime() * m_animationSpeed;
+    float t;
+    
+    switch(m_animationType) {
+        case 1: 
+            t = fabs(fmod(timeValue, 2.0f) - 1.0f);
+            break;
+        case 2: 
+            t = (fmod(timeValue, 2.0f) > 1.0f) ? 1.0f : 0.0f;
+            break;
+        case 0: 
+        default:
+            t = (sin(timeValue) + 1.0f) * 0.5f;
+            break;
+    }
+    
+    glm::vec3 color = m_minColor + t * (m_maxColor - m_minColor);
     
     m_shader->use();
-    m_shader->setVec4("ourColor", glm::vec4(0.0f, greenValue, 0.0f, 1.0f));
+    m_shader->setVec4("ourColor", glm::vec4(color, 1.0f));
     
     glBindVertexArray(m_VAO);
     glDrawArrays(GL_TRIANGLES, 0, 3);
@@ -60,5 +76,20 @@ void AnimatedTriangleExample::cleanup() {
     }
     m_shader.reset();
 }
-
+void AnimatedTriangleExample::renderUI(){
+    if (ImGui::CollapsingHeader("Animation Settings", ImGuiTreeNodeFlags_DefaultOpen)) {
+        // Animation speed control
+        ImGui::SliderFloat("Animation Speed", &m_animationSpeed, 0.1f, 5.0f);
+        
+        // Color controls
+        ImGui::ColorEdit3("Min Color", &m_minColor.x);
+        ImGui::ColorEdit3("Max Color", &m_maxColor.x);
+        
+        // Animation type selection
+        const char* animTypes[] = { "Sine Wave", "Triangle Wave", "Square Wave" };
+        ImGui::Combo("Animation Type", &m_animationType, animTypes, IM_ARRAYSIZE(animTypes));
+    
+        
+    }
+}
 } // namespace Mir

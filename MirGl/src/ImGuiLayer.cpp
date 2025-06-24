@@ -87,6 +87,13 @@ namespace Mir
 
             ImGui::End();
         }
+
+        if (state.exampleManager->currentExample) {
+            if (ImGui::Begin("Example Settings")) {
+                state.exampleManager->currentExample->renderUI();
+                ImGui::End();
+            }
+        }
     }
     void ImGuiLayer::terminate() {
         ImGui_ImplOpenGL3_Shutdown();

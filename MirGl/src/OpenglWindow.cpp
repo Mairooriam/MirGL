@@ -10,6 +10,7 @@
 
 #include "Examples/AnimatedTriangle.h"
 #include "Examples/ColorTriangle.h"
+#include "Examples/TexturedTriangle.h"
 
 namespace Mir {
     void framebuffer_size_callback(GLFWwindow* /*window*/, int width, int height) {
@@ -57,6 +58,7 @@ namespace Mir {
         m_renderState.exampleManager = &m_exampleManager;
         m_renderState.exampleManager->addExample(std::make_unique<ColorTriangleExample>());
         m_renderState.exampleManager->addExample(std::make_unique<AnimatedTriangleExample>());
+        m_renderState.exampleManager->addExample(std::make_unique<TexturedTriangle>());
         m_renderState.exampleManager->selectExample(1);
     }
     

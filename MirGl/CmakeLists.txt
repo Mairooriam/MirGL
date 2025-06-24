@@ -1,5 +1,8 @@
 
 find_package(OpenGL REQUIRED)
+
+
+
 set(EXTERNAL_LIBS
   glad
   glfw
@@ -17,6 +20,7 @@ set(SOURCES
     src/shader.cpp
     src/Examples/ColorTriangle.cpp
     src/Examples/AnimatedTriangle.cpp
+    src/Examples/TexturedTriangle.cpp
 
 )
 
@@ -24,11 +28,11 @@ add_executable(MirGl ${SOURCES})
 
 target_link_libraries(MirGl PRIVATE ${EXTERNAL_LIBS})
 
-# Improve include path handling
 target_include_directories(MirGl PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
-  ${CMAKE_CURRENT_SOURCE_DIR}/external/glad/include
+    ${CMAKE_SOURCE_DIR}/external/glad/include 
+  ${CMAKE_SOURCE_DIR}/external   
 )
 
 
@@ -40,7 +44,13 @@ file(GLOB_RECURSE SHADER_FILES_FS CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/assets/shaders/*.fs"
 )
 
-set(SHADER_FILES ${SHADER_FILES_VS} ${SHADER_FILES_FS})
+file(GLOB_RECURSE TEXTURE_FILES CONFIGURE_DEPENDS
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures/*.jpg",
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures/*.png"
+)
+
+
+set(SHADER_FILES ${SHADER_FILES_VS} ${SHADER_FILES_FS} ${TEXTURE_FILES})
 
 # Only copy files that exist
 foreach(SHADER_FILE ${SHADER_FILES})

@@ -17,6 +17,8 @@ public:
     virtual void processInput(GLFWwindow* window) { }
     
     virtual const char* getName() const = 0;
+
+    virtual void renderUI() { }
 };
 
 } // namespace Mir
