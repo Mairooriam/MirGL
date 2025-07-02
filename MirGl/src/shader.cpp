@@ -80,19 +80,51 @@ namespace Mir {
     }
 
     void Shader::setBool(const std::string& name, bool value) const {
-        glUniform1i(glGetUniformLocation(m_id, name.c_str()), (int)value);
+        GLint location = getUniformLocation(name.c_str());
+        if (location != -1) {
+            glUniform1i(location, (int)value);
+        }
     }
 
     void Shader::setInt(const std::string& name, int value) const {
-        glUniform1i(glGetUniformLocation(m_id, name.c_str()), value);
+        GLint location = getUniformLocation(name.c_str());
+        if (location != -1) {
+            glUniform1i(location, value);
+        }
     }
 
     void Shader::setFloat(const std::string& name, float value) const {
-        glUniform1f(glGetUniformLocation(m_id, name.c_str()), value);
+        GLint location = getUniformLocation(name.c_str());
+        if (location != -1) {
+            glUniform1f(location, value);
+        }
     }
+
     void Shader::setVec4(const std::string& name, const glm::vec4& value) const {
-        glUniform4fv(glGetUniformLocation(m_id, name.c_str()), 1, &value[0]);
+        GLint location = getUniformLocation(name.c_str());
+        if (location != -1) {
+            glUniform4fv(location, 1, &value[0]);
+        }
     }
+
+    void Shader::setMat4(const char* name, const glm::mat4& mat) const {
+        GLint location = getUniformLocation(name);
+        if (location != -1) {
+            glUniformMatrix4fv(location, 1, GL_FALSE, &mat[0][0]);
+        }
+    }
+
+    GLint Shader::getUniformLocation(const char* name) const{
+        GLint location = glGetUniformLocation(m_id, name);
+        if (location == -1) {
+            std::cerr << "WARNING: Uniform '" << name << "' does not exist in shader " << m_id << std::endl;
+        }
+        return location;
+    }
+
+
+    
+
     auto Shader::compileShader(GLenum type, const char* source)
         -> std::expected<unsigned int, std::string> {
         unsigned int shader = glCreateShader(type);

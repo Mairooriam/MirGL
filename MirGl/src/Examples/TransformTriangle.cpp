@@ -1,4 +1,4 @@
-#include "Examples/TexturedTriangle.h"
+#include "Examples/TransformTriangle.h"
 #include "imgui.h"
 #include "log.h"
 #include <stb/stb_image.h>
@@ -6,13 +6,13 @@
 
 namespace Mir {
 
-TexturedTriangle::TexturedTriangle() = default;
+TransformTriangle::TransformTriangle() = default;
 
-TexturedTriangle::~TexturedTriangle() {
+TransformTriangle::~TransformTriangle() {
     cleanup();
 }
 
-void TexturedTriangle::setup() {
+void TransformTriangle::setup() {
 
 
     glGenTextures(1, &m_texture1);
@@ -58,7 +58,7 @@ void TexturedTriangle::setup() {
     }
     stbi_image_free(data2);
 
-    m_shader = std::make_unique<Shader>("TexturedTriangle.vs", "TexturedTriangle.fs");
+    m_shader = std::make_unique<Shader>("TransformTriangle.vs", "TransformTriangle.fs");
     
     float vertices[] = {
         // positions          // colors           // texture coords
@@ -103,14 +103,20 @@ void TexturedTriangle::setup() {
     glBindVertexArray(0);
 }
 
-void TexturedTriangle::render() {
+void TransformTriangle::render() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
+    m_trans = glm::mat4(1.0f); 
+    m_trans = glm::rotate(m_trans, glm::radians(m_rotation), glm::vec3(0.0f, 0.0f, 1.0f));
+    m_trans = glm::scale(m_trans, glm::vec3(0.5f, 0.5f, 0.5f));
 
     m_shader->use();
     m_shader->setInt("texture1", 0);
     m_shader->setInt("texture2", 1);
     m_shader->setFloat("fade", m_fade);
+    m_shader->setMat4("trans", m_trans);
+
     glActiveTexture(GL_TEXTURE1);
 
     glBindTexture(GL_TEXTURE_2D, m_texture2);
@@ -123,7 +129,7 @@ void TexturedTriangle::render() {
     glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0); 
     }
 
-void TexturedTriangle::cleanup() {
+void TransformTriangle::cleanup() {
     if (m_VAO) {
         glDeleteVertexArrays(1, &m_VAO);
         m_VAO = 0;
@@ -147,10 +153,10 @@ void TexturedTriangle::cleanup() {
     }
     m_shader.reset();
 }
-void TexturedTriangle::renderUI(){
+void TransformTriangle::renderUI(){
     ImGui::Begin("Example Settings");
     ImGui::SliderFloat("Fade", &m_fade, 0.0f, 1.0f, "%.2f");
+    ImGui::SliderFloat("Rotaation", &m_rotation, 0.0f, 360.0f, "%.2f");
     ImGui::End();
-
 }
 } // namespace Mir

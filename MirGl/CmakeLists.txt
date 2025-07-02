@@ -21,6 +21,8 @@ set(SOURCES
     src/Examples/ColorTriangle.cpp
     src/Examples/AnimatedTriangle.cpp
     src/Examples/TexturedTriangle.cpp
+    src/Examples/TransformTriangle.cpp
+    src/stb_image_impl.cpp
 
 )
 

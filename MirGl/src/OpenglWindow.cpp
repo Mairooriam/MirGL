@@ -11,6 +11,7 @@
 #include "Examples/AnimatedTriangle.h"
 #include "Examples/ColorTriangle.h"
 #include "Examples/TexturedTriangle.h"
+#include "Examples/TransformTriangle.h"
 
 namespace Mir {
     void framebuffer_size_callback(GLFWwindow* /*window*/, int width, int height) {
@@ -21,8 +22,11 @@ namespace Mir {
         if (glfwGetKey(m_window, GLFW_KEY_ESCAPE) == GLFW_PRESS){
             m_imguiLayer->terminate();
             glfwSetWindowShouldClose(m_window, true);
+
         }
+
     }
+
 
     static void glfw_error_callback(int error, const char* description)
     {
@@ -43,6 +47,7 @@ namespace Mir {
         if (m_window == nullptr) {
             MIR_ERROR("Failed to create GLFW window");
             glfwTerminate();
+            return;
         }
         glfwMakeContextCurrent(m_window);
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -59,7 +64,8 @@ namespace Mir {
         m_renderState.exampleManager->addExample(std::make_unique<ColorTriangleExample>());
         m_renderState.exampleManager->addExample(std::make_unique<AnimatedTriangleExample>());
         m_renderState.exampleManager->addExample(std::make_unique<TexturedTriangle>());
-        m_renderState.exampleManager->selectExample(1);
+        m_renderState.exampleManager->addExample(std::make_unique<TransformTriangle>());
+        m_renderState.exampleManager->selectExample(3);
     }
     
 
@@ -70,8 +76,14 @@ void Window::render() {
         processInput();
         glfwPollEvents();
         
-        // Make main OpenGL context current
-        glfwMakeContextCurrent(m_window);
+        if (glfwGetCurrentContext() != m_window) {
+            glfwMakeContextCurrent(m_window);
+            // Optionally, you can check if the context is set correctly after calling
+            if (glfwGetCurrentContext() != m_window) {
+                MIR_ERROR("Failed to make context current, skipping frame");
+                continue;
+            }
+        }
         // Clear framebuffer with UI-controlled color
         glClearColor(
             m_renderState.clearColor[0], 

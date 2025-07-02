@@ -24,7 +24,8 @@ namespace Mir
         void setInt(const std::string& name, int value) const;
         void setFloat(const std::string& name, float value) const;
         void setVec4(const std::string& name, const glm::vec4& value) const;
-  
+        void setMat4(const char* name, const glm::mat4& mat) const;
+        GLint getUniformLocation(const char* name) const;
 
     };
     
