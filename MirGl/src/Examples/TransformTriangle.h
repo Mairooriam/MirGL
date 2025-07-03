@@ -28,6 +28,23 @@ namespace Mir {
         float m_fade;
         glm::mat4 m_trans;
         float m_rotation;
+        glm::vec3 m_scale{0.5f};
+        glm::vec3 m_offset{0.3f};
+        bool m_animate = false;
+        enum class WaveType {
+            Sine,
+            Cosine,
+            Tangent
+        };
+        GLuint m_queryID = 0;
+        float m_lastRenderTimeMs = 0.0f;
+
+        WaveType m_xWaveType = WaveType::Sine;
+        WaveType m_yWaveType = WaveType::Cosine;
+        float m_xMultiplier = 0.5f;
+        float m_yMultiplier = 0.5f;
+        float m_speedMultiplier = 1.0f;
+
     };
 
 } // namespace Mir

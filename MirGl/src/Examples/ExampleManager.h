@@ -13,7 +13,6 @@ struct ExampleManager {
     
     // Add/select examples
     void addExample(std::unique_ptr<IExample> example) {
-        example->setup();
         examples.push_back(std::move(example));
         if (examples.size() == 1) {
             selectExample(0);
@@ -22,13 +21,15 @@ struct ExampleManager {
     
     void selectExample(size_t index) {
         if (index < examples.size()) {
-            size_t previousIndex = currentIndex;
+            // Clean up previous example
+            if (currentExample) {
+                currentExample->cleanup();
+            }
+            
+            // Set new example and set it up
             currentIndex = index;
             currentExample = examples[index].get();
-            if (examples.size() > 1 && previousIndex < examples.size()) {
-                examples[previousIndex]->cleanup();
-            }
-            examples[currentIndex]->setup();
+            currentExample->setup();
         }
     }
     

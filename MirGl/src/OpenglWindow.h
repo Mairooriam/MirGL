@@ -25,6 +25,11 @@ namespace Mir
         RenderState m_renderState;
         std::vector<std::unique_ptr<IExample>> m_examples;
         ExampleManager m_exampleManager;
+        float m_frameTime = 0.0f;
+        float m_fps = 0.0f;
+        float m_frameTimeAccum = 0.0f;
+        int m_frameCount = 0;
+        double m_lastFrameTime = 0.0f;
     private:
         void processInput();
     public:

@@ -42,7 +42,7 @@ namespace Mir {
         glfwSetErrorCallback(glfw_error_callback);
         glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
         // glfwWindowHint(GLFW_OPENGL_FORWARD_COMPAT, GL_TRUE);
-
+        
         m_window = glfwCreateWindow(w_, h_, name_, nullptr, nullptr);
         if (m_window == nullptr) {
             MIR_ERROR("Failed to create GLFW window");
@@ -50,9 +50,11 @@ namespace Mir {
             return;
         }
         glfwMakeContextCurrent(m_window);
+        glfwSwapInterval(1); // Enable VSync
+        
         if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
-            MIR_ERROR("Failed to initialize GLAD");
-
+        MIR_ERROR("Failed to initialize GLAD");
+        
         glViewport(0, 0, 800, 600);
         
         glfwSetFramebufferSizeCallback(m_window, framebuffer_size_callback);
@@ -72,7 +74,26 @@ namespace Mir {
 
     
 void Window::render() {
+    double lastTime = glfwGetTime();
+    
     while (!glfwWindowShouldClose(m_window)) {
+        double currentTime = glfwGetTime();
+        float deltaTime = static_cast<float>(currentTime - lastTime);
+        lastTime = currentTime;
+        
+        // More accurate FPS calculation
+        m_frameCount++;
+        m_frameTimeAccum += deltaTime;
+        
+        // Update every 60 frames or every 0.5 seconds, whichever comes first
+        if (m_frameCount >= 60 || m_frameTimeAccum >= 0.5f) {
+            m_fps = m_frameCount / m_frameTimeAccum;
+            m_frameTime = m_frameTimeAccum / m_frameCount;
+            m_frameTimeAccum = 0;
+            m_frameCount = 0;
+        }
+
+
         processInput();
         glfwPollEvents();
         
@@ -101,7 +122,28 @@ void Window::render() {
         }
         
         m_imguiLayer->begin();
-        //renderExamplesUI(); // New method to render example selector
+        // for now here. lazy
+        int windowX, windowY;
+        glfwGetWindowPos(m_window, &windowX, &windowY);
+
+        ImGui::SetNextWindowPos(ImVec2(windowX + 10, windowY + 10), ImGuiCond_FirstUseEver);
+        ImGui::SetNextWindowBgAlpha(0.35f); // Transparent background
+        ImGui::Begin("FPS Counter", nullptr, 
+                    ImGuiWindowFlags_NoTitleBar | 
+                    ImGuiWindowFlags_NoResize | 
+                    ImGuiWindowFlags_AlwaysAutoResize | 
+                    ImGuiWindowFlags_NoMove | 
+                    ImGuiWindowFlags_NoSavedSettings);
+
+        ImGui::Text("FPS: %.1f (%.2f ms/frame)", m_fps, m_frameTime * 1000.0f);
+        if (ImGui::Button("Toggle VSync")) {
+            static bool vsyncEnabled = true;
+            vsyncEnabled = !vsyncEnabled;
+            glfwSwapInterval(vsyncEnabled ? 1 : 0);
+        }
+        ImGui::End();
+
+
         m_imguiLayer->render(m_renderState);
         m_imguiLayer->End();
         
