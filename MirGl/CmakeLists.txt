@@ -22,6 +22,7 @@ set(SOURCES
     src/Examples/AnimatedTriangle.cpp
     src/Examples/TexturedTriangle.cpp
     src/Examples/TransformTriangle.cpp
+    src/Examples/CoordinateSystems.cpp
     src/stb_image_impl.cpp
 
 )
