@@ -13,7 +13,7 @@
 #include "Examples/TexturedTriangle.h"
 #include "Examples/TransformTriangle.h"
 #include "Examples/CoordinateSystems.h"
-
+#include "Examples/CameraSystem.h"
 
 namespace Mir {
     void framebuffer_size_callback(GLFWwindow* /*window*/, int width, int height) {
@@ -70,7 +70,8 @@ namespace Mir {
         m_renderState.exampleManager->addExample(std::make_unique<TexturedTriangle>());
         m_renderState.exampleManager->addExample(std::make_unique<TransformTriangle>());
         m_renderState.exampleManager->addExample(std::make_unique<CoordinateSystems>());
-        m_renderState.exampleManager->selectExample(4);
+        m_renderState.exampleManager->addExample(std::make_unique<CameraSystem>());
+        m_renderState.exampleManager->selectExample(5);
     }
     
 

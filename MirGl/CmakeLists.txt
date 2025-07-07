@@ -18,12 +18,14 @@ set(SOURCES
     src/log.cpp
     src/ImGuiLayer.cpp
     src/shader.cpp
+    src/stb_image_impl.cpp
+    src/Camera.cpp
     src/Examples/ColorTriangle.cpp
     src/Examples/AnimatedTriangle.cpp
     src/Examples/TexturedTriangle.cpp
     src/Examples/TransformTriangle.cpp
     src/Examples/CoordinateSystems.cpp
-    src/stb_image_impl.cpp
+    src/Examples/CameraSystem.cpp
 
 )
 
