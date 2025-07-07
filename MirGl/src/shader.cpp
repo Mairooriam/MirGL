@@ -114,6 +114,13 @@ namespace Mir {
         }
     }
 
+    void Shader::setVec3(const std::string& name, const glm::vec3& value) const {
+        GLint location = getUniformLocation(name.c_str());
+        if (location != -1) {
+            glUniform3fv(location, 1, &value[0]);
+        }
+    }
+
     GLint Shader::getUniformLocation(const char* name) const{
         GLint location = glGetUniformLocation(m_id, name);
         if (location == -1) {

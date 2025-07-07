@@ -26,6 +26,7 @@ set(SOURCES
     src/Examples/TransformTriangle.cpp
     src/Examples/CoordinateSystems.cpp
     src/Examples/CameraSystem.cpp
+    src/Examples/Colors.cpp
 
 )
 
