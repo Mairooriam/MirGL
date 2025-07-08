@@ -27,6 +27,7 @@ set(SOURCES
     src/Examples/CoordinateSystems.cpp
     src/Examples/CameraSystem.cpp
     src/Examples/Colors.cpp
+    src/Examples/Lighting.cpp
 
 )
 

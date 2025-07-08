@@ -1,4 +1,4 @@
-#include "Examples/Colors.h"
+#include "Examples/Lighting.h"
 #include "imgui.h"
 #include "log.h"
 #include <stb/stb_image.h>
@@ -6,13 +6,13 @@
 
 namespace Mir {
 
-Colors::Colors() = default;
+Lighting::Lighting() = default;
 
-Colors::~Colors() {
+Lighting::~Lighting() {
     cleanup();
 }
 
-void Colors::setup() {
+void Lighting::setup() {
     if (m_queryID == 0) { 
         glGenQueries(1, &m_queryID);
     }
@@ -22,51 +22,51 @@ void Colors::setup() {
 
     m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 3.0f));
 
-    m_shader = std::make_unique<Shader>("Colors.vs", "ColorsLighting.fs");
-    m_lightingShader = std::make_unique<Shader>("Colors.vs", "ColorsLightCube.fs");
+    m_shader = std::make_unique<Shader>("LightingBase.vs", "Lighting.fs");
+    m_lightingShader = std::make_unique<Shader>("LightingBase.vs", "LightingLightCube.fs");
     float vertices[] = {
-        -0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f,  0.5f, -0.5f,
-        0.5f,  0.5f, -0.5f,
-        -0.5f,  0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,
+     0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+     0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
+    -0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f, 
 
-        -0.5f, -0.5f,  0.5f,
-        0.5f, -0.5f,  0.5f,
-        0.5f,  0.5f,  0.5f,
-        0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
-        -0.5f, -0.5f,  0.5f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,
 
-        -0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f, -0.5f,
-        -0.5f, -0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,
 
-        0.5f,  0.5f,  0.5f,
-        0.5f,  0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f,  0.5f,
-        0.5f,  0.5f,  0.5f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,
 
-        -0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f, -0.5f,
-        0.5f, -0.5f,  0.5f,
-        0.5f, -0.5f,  0.5f,
-        -0.5f, -0.5f,  0.5f,
-        -0.5f, -0.5f, -0.5f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+     0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,
+    -0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,
 
-        -0.5f,  0.5f, -0.5f,
-        0.5f,  0.5f, -0.5f,
-        0.5f,  0.5f,  0.5f,
-        0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f,  0.5f,
-        -0.5f,  0.5f, -0.5f
-    };
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+     0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,
+    -0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f
+};
 
 
     m_cubePositions = {
@@ -89,19 +89,29 @@ void Colors::setup() {
     glBindVertexArray(m_VAO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
     glBufferData(GL_ARRAY_BUFFER, sizeof(vertices), vertices, GL_STATIC_DRAW);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+
+    // Position attribute (location = 0)
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+    // Normal attribute (location = 1)
+    glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
+    glEnableVertexAttribArray(1);
+
     glBindBuffer(GL_ARRAY_BUFFER, 0);
     glBindVertexArray(0);
+
 
     glGenVertexArrays(1, &m_lightVAO);
     glBindVertexArray(m_lightVAO);
     glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
+    glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
     glEnableVertexAttribArray(0);
+
+
 }
 
-void Colors::render() {
+void Lighting::render() {
     glEnable(GL_BLEND);
     glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
     
@@ -139,44 +149,42 @@ void Colors::render() {
     
     glEnable(GL_DEPTH_TEST);
     glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
+
+    glm::vec3 lightPos(1.1f, 1.0f, 1.5f); 
+    glm::mat4 model = glm::mat4(1.0f);
+    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
     
-    // RENDER MAIN CUBE
+    std::cout << "Setting uniforms for main shader (ID: " << m_shader->m_id << ")" << std::endl;
     m_shader->use();
     m_shader->setMat4("view", view);
     m_shader->setMat4("projection", projection);
     m_shader->setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
     m_shader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
-
-    
-    glm::mat4 model = glm::mat4(1.0f);
-    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+    m_shader->setVec3("lightPos", lightPos);
     m_shader->setMat4("model", model);
-    
+
     glBindVertexArray(m_VAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
 
     // RENDER LIGHT CUBE
+    model = glm::mat4(1.0f);
+    model = glm::translate(model, lightPos);
+    model = glm::scale(model, glm::vec3(0.1f));
+    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
+
+    std::cout << "Setting uniforms for light cube shader (ID: " << m_lightingShader->m_id << ")" << std::endl;
     m_lightingShader->use();
     m_lightingShader->setMat4("view", view);
     m_lightingShader->setMat4("projection", projection);
-
-    glm::vec3 lightPos(1.1f, 1.0f, 1.5f);
-    model = glm::mat4(1.0f);
-    model = glm::translate(model, lightPos);
-    model = glm::scale(model, glm::vec3(0.5f));
-    model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
     m_lightingShader->setMat4("model", model);
-    
+    //Doesnt need to be set each frame but for now here :) since lightpos is in scope :))
     glBindVertexArray(m_lightVAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
-
- 
-    
     glDisable(GL_DEPTH_TEST);
 
 }
 
-void Colors::cleanup() {
+void Lighting::cleanup() {
     if (m_VAO) {
         glDeleteVertexArrays(1, &m_VAO);
         m_VAO = 0;
@@ -204,7 +212,7 @@ void Colors::cleanup() {
     }
     m_shader.reset();
 }
-void Colors::renderUI(){
+void Lighting::renderUI(){
     ImGui::Begin("Example Settings");
     
     // Basic settings
@@ -263,6 +271,9 @@ void Colors::renderUI(){
     ImGui::Text("Movement Speed: %.2f", cameraState.movementSpeed);
     ImGui::Text("Mouse Sensitivity: %.3f", cameraState.mouseSensitivity);
 
+    
+
+    
     ImGui::End();
 }
 } // namespace Mir

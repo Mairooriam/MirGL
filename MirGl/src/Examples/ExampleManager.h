@@ -10,8 +10,8 @@ struct ExampleManager {
     std::vector<std::unique_ptr<IExample>> examples;
     size_t currentIndex = 0;
     IExample* currentExample = nullptr;
-    
-    // Add/select examples
+
+
     void addExample(std::unique_ptr<IExample> example) {
         examples.push_back(std::move(example));
         if (examples.size() == 1) {

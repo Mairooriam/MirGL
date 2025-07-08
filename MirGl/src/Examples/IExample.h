@@ -19,6 +19,8 @@ public:
     virtual const char* getName() const = 0;
 
     virtual void renderUI() { }
+    protected:
+        GLFWwindow* m_window = nullptr;  // Store window handle
 };
 
 } // namespace Mir

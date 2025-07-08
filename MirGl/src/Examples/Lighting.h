@@ -8,16 +8,16 @@ namespace Mir {
 
 
 
-    class Colors : public IExample {
+    class Lighting : public IExample {
     public:
-        Colors();
-        ~Colors() override;
+        Lighting();
+        ~Lighting() override;
         
     
         void setup() override;
         void render() override;
         void cleanup() override;
-        const char* getName() const override { return "Colors Systems"; }
+        const char* getName() const override { return "Lighting"; }
 
     
         void renderUI() override;

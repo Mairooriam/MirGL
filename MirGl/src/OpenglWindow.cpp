@@ -15,7 +15,7 @@
 #include "Examples/CoordinateSystems.h"
 #include "Examples/CameraSystem.h"
 #include "Examples/Colors.h"
-
+#include "Examples/Lighting.h"
 namespace Mir {
     void framebuffer_size_callback(GLFWwindow* /*window*/, int width, int height) {
         glViewport(0, 0, width, height);
@@ -73,7 +73,9 @@ namespace Mir {
         m_renderState.exampleManager->addExample(std::make_unique<CoordinateSystems>());
         m_renderState.exampleManager->addExample(std::make_unique<CameraSystem>());
         m_renderState.exampleManager->addExample(std::make_unique<Colors>());
-        m_renderState.exampleManager->selectExample(6);
+        m_renderState.exampleManager->addExample(std::make_unique<Lighting>());
+        m_renderState.exampleManager->selectExample(7);
+
     }
     
 
