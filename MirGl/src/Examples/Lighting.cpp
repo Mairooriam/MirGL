@@ -154,17 +154,19 @@ void Lighting::render() {
     glm::mat4 model = glm::mat4(1.0f);
     model = glm::rotate(model, (float)glfwGetTime() * glm::radians(50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
     
-    std::cout << "Setting uniforms for main shader (ID: " << m_shader->m_id << ")" << std::endl;
+    //std::cout << "Setting uniforms for main shader (ID: " << m_shader->m_id << ")" << std::endl;
     m_shader->use();
     m_shader->setMat4("view", view);
     m_shader->setMat4("projection", projection);
     m_shader->setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
     m_shader->setVec3("lightColor", glm::vec3(1.0f, 1.0f, 1.0f));
     m_shader->setVec3("lightPos", lightPos);
+    m_shader->setVec3("viewPos", m_Camera->GetPosition());  
     m_shader->setMat4("model", model);
 
     glBindVertexArray(m_VAO);
     glDrawArrays(GL_TRIANGLES, 0, 36);
+
 
     // RENDER LIGHT CUBE
     model = glm::mat4(1.0f);
@@ -172,7 +174,7 @@ void Lighting::render() {
     model = glm::scale(model, glm::vec3(0.1f));
     model = glm::rotate(model, (float)glfwGetTime() * glm::radians(-50.0f), glm::vec3(0.5f, 1.0f, 0.0f));
 
-    std::cout << "Setting uniforms for light cube shader (ID: " << m_lightingShader->m_id << ")" << std::endl;
+    //std::cout << "Setting uniforms for light cube shader (ID: " << m_lightingShader->m_id << ")" << std::endl;
     m_lightingShader->use();
     m_lightingShader->setMat4("view", view);
     m_lightingShader->setMat4("projection", projection);
