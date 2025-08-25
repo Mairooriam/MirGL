@@ -28,6 +28,7 @@ set(SOURCES
     src/Examples/CameraSystem.cpp
     src/Examples/Colors.cpp
     src/Examples/Lighting.cpp
+    src/Playground/Playground.cpp
 
 )
 
@@ -39,6 +40,7 @@ target_include_directories(MirGl PRIVATE
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
     ${CMAKE_SOURCE_DIR}/external/glad/include 
+    ${CMAKE_SOURCE_DIR}/External/magic_enum/include
   ${CMAKE_SOURCE_DIR}/external   
 )
 

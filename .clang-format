@@ -3,8 +3,8 @@ BasedOnStyle: Google
 IndentWidth: 4
 TabWidth: 4
 UseTab: Never
-ColumnLimit: 100
-AccessModifierOffset: -4
+ColumnLimit: 120
+AccessModifierOffset: -2
 NamespaceIndentation: All
 FixNamespaceComments: true
 BraceWrapping:
@@ -17,12 +17,19 @@ BraceWrapping:
   AfterUnion: false
   BeforeCatch: false
   BeforeElse: false
-AllowShortFunctionsOnASingleLine: Empty
-AllowShortIfStatementsOnASingleLine: false
-AllowShortLoopsOnASingleLine: false
+  SplitEmptyFunction: false
+AllowShortFunctionsOnASingleLine: Inline
+AllowShortIfStatementsOnASingleLine: true
+AllowShortLoopsOnASingleLine: true
 BreakBeforeBraces: Attach
 SpaceBeforeParens: ControlStatements
 SpaceInEmptyParentheses: false
 SpacesInParentheses: false
 AllowShortCaseLabelsOnASingleLine: true
 IndentCaseLabels: true
+AlignAfterOpenBracket: AlwaysBreak
+AlignConsecutiveAssignments: false
+AlignConsecutiveDeclarations: false
+AlignEscapedNewlines: Left
+AlignOperands: false
+AlignTrailingComments: true
