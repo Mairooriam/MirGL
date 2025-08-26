@@ -7,7 +7,8 @@
 #include "Camera.h"
 #include "Examples/IExample.h"
 #include "Primitives.h"
-
+#include <memory>
+#include "PickingTexture.h"
 namespace Mir {
 
     struct Mouse {
@@ -36,6 +37,10 @@ namespace Mir {
         void debugUI_screenToWorld();
         void debugUI_windowInfo();
 
+        void UpdateScrollOffsets(float xOffset, float yOffset) { 
+            m_scrollXOffset = xOffset;
+            m_scrollYOffset = yOffset;
+        };
 
         void setup() override;
         void setupFrameBuffers();
@@ -43,10 +48,14 @@ namespace Mir {
         void handleInput();
         void render() override;
         void cleanup() override;
+        OrthoCamera* getOrthoCamera() { return m_orthoCamera.get(); }
+        Camera* getCamera() { return m_Camera.get(); }
+        
         const char* getName() const override { return "Playground"; }
 
         glm::vec3 ScreenToWorld(float x_screen, float y_screen);
         void renderUI() override;
+        bool useOrthoCamera = true;
 
       private:
         ActiveWindow m_activeWindow = ActiveWindow::MAIN_VIEWPORT;
@@ -61,7 +70,8 @@ namespace Mir {
         unsigned int m_texture1, m_texture2;
 
         Mouse mouse_m;
-        bool useOrthoCamera = true;
+
+        PickingTexture m_pickingTexture;
 
         GLuint m_queryID = 0;
         float m_lastRenderTimeMs = 0.0f;
@@ -70,11 +80,14 @@ namespace Mir {
         GLuint m_perspectiveFramebuffer = 0;
         GLuint m_perspectiveTextureColorbuffer = 0;
         GLuint m_perspectiveRBO = 0;
-      
+
         DebugData debugData_m;
         bool m_updateMousePos = true;
-        glm::vec2 m_manualMousePos = glm::vec2(0.0f,0.0f);
-
+        glm::vec2 m_manualMousePos = glm::vec2(0.0f, 0.0f);
+        
+        double m_scrollXOffset = 0.0;  // Horizontal scroll offset
+        double m_scrollYOffset = 0.0;  // Vertical scroll offset
+        
         float m_FOV = 45.0f;
         int m_windowWidth = 800;
         int m_windowHeight = 600;
@@ -83,6 +96,6 @@ namespace Mir {
         float m_delay = 1.0f;
         double m_lastFrameTime = 0.0f;
         double m_deltaTime = 0.0f;
-    };
+      }; 
 
 }  // namespace Mir

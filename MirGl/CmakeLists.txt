@@ -30,6 +30,8 @@ set(SOURCES
     src/Examples/Lighting.cpp
     src/Playground/Playground.cpp
 
+    src/Playground/PickingTexture.cpp
+
 )
 
 add_executable(MirGl ${SOURCES})

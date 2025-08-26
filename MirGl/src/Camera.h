@@ -20,7 +20,7 @@ namespace Mir {
     // Default camera values
     const float YAW = -90.0f;
     const float PITCH = 0.0f;
-    const float SPEED = 2.5f;
+    const float SPEED = 5.0f;
     const float SENSITIVITY = 1.0f;
     const float ZOOM = 45.0f;
 
@@ -100,10 +100,40 @@ namespace Mir {
               m_Far(far) {}
 
         glm::mat4 GetViewMatrix() const { return glm::translate(glm::mat4(1.0f), -m_Position); }
+        // glm::vec3 ScreenToWorld(float x_screen, float y_screen, float windowWidth, float windowHeight) const {
+        //     // Normalize screen coordinates to [-1, 1]
+        //     float x_ndc = (2.0f * x_screen) / windowWidth - 1.0f;
+        //     float y_ndc = 1.0f - (2.0f * y_screen) / windowHeight;  // Flip Y because screen Y is top-down
 
+        //     // Convert NDC to world space
+        //     float halfWidth = m_WindowWidth * (m_Zoom / 2.0f);
+        //     float halfHeight = m_WindowHeight * (m_Zoom / 2.0f);
+
+        //     float worldX = x_ndc * halfWidth + m_Position.x;
+        //     float worldY = y_ndc * halfHeight + m_Position.y;
+
+        //     return glm::vec3(worldX, worldY, 0.0f);
+        // }
+
+        glm::vec3 ScreenToWorld(float x_screen, float y_screen, float windowWidth, float windowHeight) const {
+            // Step 1: Normalize screen coordinates to NDC [-1, 1]
+            float x_ndc = (2.0f * x_screen) / windowWidth - 1.0f;
+            float y_ndc = 1.0f - (2.0f * y_screen) / windowHeight;  // Flip Y because screen Y is top-down
+            glm::vec4 ndcPos(x_ndc, y_ndc, 0.0f, 1.0f);             // Z = 0 for 2D
+
+            // Step 2: Get the inverse projection and view matrices
+            glm::mat4 inverseProjection = glm::inverse(GetProjectionMatrix());
+            glm::mat4 inverseView = glm::inverse(GetViewMatrix());
+
+            // Step 3: Transform NDC to world space
+            glm::vec4 worldPos = inverseProjection * inverseView * ndcPos;
+
+            // Step 4: Return the world position (divide by w to handle homogeneous coordinates)
+            return glm::vec3(worldPos) / worldPos.w;
+        }
         glm::mat4 GetProjectionMatrix() const {
-            float halfWidth = m_WindowWidth / (2.0f * m_Zoom);
-            float halfHeight = m_WindowHeight / (2.0f * m_Zoom);
+            float halfWidth = m_WindowWidth * (m_Zoom / 2.0f);
+            float halfHeight = m_WindowHeight * (m_Zoom / 2.0f);
             return glm::ortho(
                 -halfWidth, halfWidth,    // Left, Right
                 -halfHeight, halfHeight,  // Bottom, Top
@@ -112,7 +142,7 @@ namespace Mir {
         }
 
         void ProcessKeyboard(CameraMovement direction, float deltaTime) {
-            float velocity = 500.0f * deltaTime;                               // Adjust speed as needed
+            float velocity = 20.0f * deltaTime;                                // Adjust speed as needed
             if (direction == CameraMovement::UP) m_Position.y -= velocity;     // Move up
             if (direction == CameraMovement::DOWN) m_Position.y += velocity;   // Move down
             if (direction == CameraMovement::LEFT) m_Position.x -= velocity;   // Move left

@@ -8,6 +8,16 @@
 #include "log.h"
 #include "magic_enum/magic_enum.hpp"
 namespace Mir {
+    void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
+        (void)xoffset;
+        auto* playground = static_cast<Mir::Playground*>(glfwGetWindowUserPointer(window));
+
+        if (playground->useOrthoCamera) {
+            playground->getOrthoCamera()->ProcessMouseScroll(static_cast<float>(yoffset));
+        } else {
+            playground->getCamera()->ProcessMouseScroll(static_cast<float>(yoffset));
+        }
+    }
 
     Playground::Playground() = default;
 
@@ -20,13 +30,13 @@ namespace Mir {
             glGenQueries(1, &m_queryID);
         }
 
-        m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 100.0f));
+        m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 10.0f));
         m_orthoCamera = std::make_unique<Mir::OrthoCamera>(
-            m_windowWidth, m_windowHeight, glm::vec3(0.0f, 0.0f, 0.0f), 1.0f, -10.0f, 200.0f);
+            m_windowWidth, m_windowHeight, glm::vec3(0.0f, 0.0f, 1.0f), 1.0f, -1.0f, 10.0f);
         m_shader = std::make_unique<Shader>("LightingBase.vs", "Lighting.fs");
         m_lightingShader = std::make_unique<Shader>("LightingBase.vs", "LightingLightCube.fs");
 
-        Square square(glm::vec3(0, 0, 0), 300.0f);
+        Square square(glm::vec3(0, 0, 0), 100.0f);
 
         // Create another square at the origin with default size 1.0
         Square defaultSquare;
@@ -64,6 +74,11 @@ namespace Mir {
         glEnableVertexAttribArray(0);
 
         setupFrameBuffers();
+
+        glfwSetScrollCallback(glfwGetCurrentContext(), ScrollCallback);
+        glfwSetWindowUserPointer(glfwGetCurrentContext(), this);
+
+        m_pickingTexture.Init(m_windowWidth, m_windowHeight);
     }
 
     void Playground::setupFrameBuffers() {
@@ -118,6 +133,8 @@ namespace Mir {
         glBindFramebuffer(GL_FRAMEBUFFER, 0);
     }
 
+    bool camera_has_moved = false;
+
     void Playground::handleInput() {
         if (m_updateMousePos) {
             // Automatically update mouse position
@@ -148,14 +165,15 @@ namespace Mir {
         } else if (m_activeWindow == ActiveWindow::MAIN_VIEWPORT) {
             if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_W) == GLFW_PRESS)
                 m_orthoCamera->ProcessKeyboard(CameraMovement::UP, m_deltaTime);
-            if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_S) == GLFW_PRESS)
+            if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_S) == GLFW_PRESS) {
                 m_orthoCamera->ProcessKeyboard(CameraMovement::DOWN, m_deltaTime);
+                camera_has_moved = true;
+            }
             if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_A) == GLFW_PRESS)
                 m_orthoCamera->ProcessKeyboard(CameraMovement::LEFT, m_deltaTime);
             if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_D) == GLFW_PRESS)
                 m_orthoCamera->ProcessKeyboard(CameraMovement::RIGHT, m_deltaTime);
         }
-
     }
 
     void Playground::render() {
@@ -180,16 +198,19 @@ namespace Mir {
         // glm::mat4 view = m_Camera->GetViewMatrix();
         // glm::mat4 projection = glm::perspective(glm::radians(m_Camera->GetZoom()), m_aspectRatio, 0.1f, 500.0f);
 
-        glm::mat4 view = m_orthoCamera->GetViewMatrix();
-        glm::mat4 projection = m_orthoCamera->GetProjectionMatrix();
+        // glm::mat4 view = m_orthoCamera->GetViewMatrix();
+        // glm::mat4 projection = m_orthoCamera->GetProjectionMatrix();
 
+        glm::mat4 view = useOrthoCamera ? m_orthoCamera->GetViewMatrix() : m_Camera->GetViewMatrix();
+        glm::mat4 projection = useOrthoCamera
+            ? m_orthoCamera->GetProjectionMatrix()
+            : glm::perspective(glm::radians(m_Camera->GetZoom()), m_aspectRatio, 0.1f, 500.0f);
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
         glm::vec3 lightPos(1.1f, 1.0f, 1.5f);
         // glm::mat4 model = glm::mat4(1.0f);
 
-        // std::cout << "Setting uniforms for main shader (ID: " << m_shader->m_id << ")" << std::endl;
         m_shader->use();
         m_shader->setMat4("view", view);
         m_shader->setMat4("projection", projection);
@@ -211,7 +232,6 @@ namespace Mir {
         glm::mat4 model = glm::mat4(1.0f);
         model = glm::translate(model, lightPos);
         model = glm::scale(model, glm::vec3(0.1f));
-        // std::cout << "Setting uniforms for light cube shader (ID: " << m_lightingShader->m_id << ")" << std::endl;
         m_lightingShader->use();
         m_lightingShader->setMat4("view", view);
         m_lightingShader->setMat4("projection", projection);
@@ -265,24 +285,12 @@ namespace Mir {
         m_shader.reset();
     }
     glm::vec3 Playground::ScreenToWorld(float x_screen, float y_screen) {
-        // Step 1: Convert screen space to NDC
-        float x_ndc = (2.0f * x_screen) / m_windowWidth - 1.0f;
-        float y_ndc = 1.0f - (2.0f * y_screen) / m_windowHeight;  // Flip Y-axis
-        debugData_m.ndc = glm::vec2(x_ndc, y_ndc);
-
-        // Step 2: Convert NDC to world space
-        glm::vec4 ndcPos(x_ndc, y_ndc, 0.0f, 1.0f);  // Z = 0 for 2D
-        debugData_m.inverseProjection = glm::inverse(m_orthoCamera->GetProjectionMatrix());
-        debugData_m.inverseView = glm::inverse(m_orthoCamera->GetViewMatrix());
-
-        glm::vec4 worldPos = debugData_m.inverseProjection * debugData_m.inverseView * ndcPos;
-
-        // Step 3: Return world coordinates
-        debugData_m.worldPosition = glm::vec3(worldPos) / worldPos.w;
-
-        return debugData_m.worldPosition;
+        if (useOrthoCamera) {
+            return m_orthoCamera->ScreenToWorld(x_screen, y_screen, m_windowWidth, m_windowHeight);
+        } else {
+            return glm::vec3();
+        }
     }
-
     void Playground::debugUI_CameraInfo() {
         // Perspective Camera Info
         {
@@ -310,7 +318,6 @@ namespace Mir {
 
         // Orthographic Camera Info
         {
-            // Display important info in the dropdown title
             glm::vec3 orthoPos = m_orthoCamera->GetPosition();
             float orthoZoom = m_orthoCamera->GetZoom();
             std::string orthoTitle = "Orthographic Camera (Pos: " + std::to_string(orthoPos.x) + ", " +
@@ -322,6 +329,24 @@ namespace Mir {
                 ImGui::Text("Zoom: %.2f", orthoZoom);
                 ImGui::Text("Near Plane: %.2f", m_orthoCamera->GetNear());
                 ImGui::Text("Far Plane: %.2f", m_orthoCamera->GetFar());
+
+                // Display Projection Matrix
+                ImGui::Text("Projection Matrix:");
+                glm::mat4 orthoProjection = m_orthoCamera->GetProjectionMatrix();
+                for (int i = 0; i < 4; ++i) {
+                    ImGui::Text(
+                        "[%.3f, %.3f, %.3f, %.3f]", orthoProjection[i][0], orthoProjection[i][1], orthoProjection[i][2],
+                        orthoProjection[i][3]);
+                }
+
+                // Display View Matrix
+                ImGui::Text("View Matrix:");
+                glm::mat4 orthoView = m_orthoCamera->GetViewMatrix();
+                for (int i = 0; i < 4; ++i) {
+                    ImGui::Text(
+                        "[%.3f, %.3f, %.3f, %.3f]", orthoView[i][0], orthoView[i][1], orthoView[i][2], orthoView[i][3]);
+                }
+
                 ImGui::TreePop();
             }
         }
@@ -380,7 +405,9 @@ namespace Mir {
     void Playground::renderUI() {
         ImGui::Begin("Example Settings");
         ImGui::Text("Current state %s", magic_enum::enum_name(m_activeWindow).data());
-
+        // Camera toggle
+        ImGui::Separator();
+        ImGui::Checkbox("Use Ortho Camera", &useOrthoCamera);
         debugUI_CameraInfo();
         debugUI_screenToWorld();
 
@@ -422,7 +449,7 @@ namespace Mir {
         ImGui::Begin("Perspective Camera View");
 
         ImGui::Text("Perspective Camera View:");
-        ImGui::Image((void*)(intptr_t)m_perspectiveTextureColorbuffer, ImVec2(400, 300));  // Adjust size as needed
+        ImGui::Image((void*)(intptr_t)m_perspectiveTextureColorbuffer, ImVec2(400, 300));
         if (ImGui::Button("Control Main Window")) {
             m_activeWindow = ActiveWindow::MAIN_VIEWPORT;
         }
@@ -431,4 +458,5 @@ namespace Mir {
         }
         ImGui::End();
     }
+
 }  // namespace Mir
