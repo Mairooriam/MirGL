@@ -71,9 +71,6 @@ namespace Mir
         ImGui::ShowDemoWindow();
 
         if (ImGui::Begin("Renderer Settings")) {
-            if (ImGui::Checkbox("Wireframe", &state.showWireframe)) {
-                state.polygonMode = state.showWireframe ? GL_LINE : GL_FILL;
-            }
             ImGui::ColorEdit3("Clear Color", state.clearColor);
             
         for (size_t i = 0; i < state.exampleManager->count(); i++) {

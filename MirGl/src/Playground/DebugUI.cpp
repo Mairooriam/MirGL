@@ -1,0 +1,151 @@
+#include "DebugUI.h"
+
+#include <magic_enum/magic_enum.hpp>
+
+#include "DebugData.h"
+#include "Mouse.h"
+#include "imgui.h"
+#include "Primitives.h"
+#include <glm/gtc/type_ptr.hpp>
+namespace Mir {
+
+    DebugUI::DebugUI(DebugData* debugData) : data(debugData) {}
+
+    void DebugUI::render() {
+        if (!data) {
+            ImGui::Begin("Debug Information");
+            ImGui::Text("No debug data available (nullptr).");
+            ImGui::End();
+            return;
+        }
+
+        ImGui::Begin("Debug Information");
+
+        if (ImGui::TreeNode("Camera Info")) {
+            renderCameraInfo();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("ScreenToWorld Debug")) {
+            renderScreenToWorld();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Mouse Info")) {
+            renderMouseInfo();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Timing Info")) {
+            renderTimingInfo();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Miscellaneous")) {
+            trashPile();
+            ImGui::TreePop();
+        }
+
+        if (ImGui::TreeNode("Objects")) {
+            objects();
+            ImGui::TreePop();
+        }
+        
+
+        ImGui::End();
+    }
+
+    void DebugUI::renderCameraInfo() {}
+
+    void DebugUI::renderScreenToWorld() {
+        ImGui::Text(
+            "World Position: (%.2f, %.2f, %.2f)", data->worldPosition.x, data->worldPosition.y, data->worldPosition.z);
+
+        ImGui::Separator();
+
+        ImGui::Text("Inverse Projection Matrix:");
+        for (int i = 0; i < 4; ++i) {
+            ImGui::Text(
+                "[%.3f, %.3f, %.3f, %.3f]", data->inverseProjection[i][0], data->inverseProjection[i][1],
+                data->inverseProjection[i][2], data->inverseProjection[i][3]);
+        }
+
+        ImGui::Text("Inverse View Matrix:");
+        for (int i = 0; i < 4; ++i) {
+            ImGui::Text(
+                "[%.3f, %.3f, %.3f, %.3f]", data->inverseView[i][0], data->inverseView[i][1], data->inverseView[i][2],
+                data->inverseView[i][3]);
+        }
+    }
+
+    void DebugUI::renderMouseInfo() {
+        if (data->mouse) {
+            ImGui::Separator();
+            ImGui::Text("Mouse (X,Y) (%.1f, %.1f)", data->mouse->screen.x, data->mouse->screen.y);
+            ImGui::Text("Viewport (X,Y) (%.1f, %.1f)", data->mouse->viewport.x, data->mouse->viewport.y);
+            ImGui::Text("World (X,Y) (%.2f, %.2f)", data->mouse->world.x, data->mouse->world.y);
+
+            ImGui::Separator();
+            ImGui::Text("Mouse State (Raw): 0x%X", static_cast<unsigned int>(data->mouse->currentState));
+            ImGui::Indent(10);
+            ImGui::Text("Mouse State (Active):");
+
+            for (const auto& state : magic_enum::enum_values<MouseState>()) {
+                if (state == MouseState::NONE) {
+                    continue;  
+                }
+                bool isPressed = (data->mouse->currentState & state) == state;
+                if (isPressed) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.0f, 1.0f, 0.0f, 1.0f));  // Green for active
+                    ImGui::Text("%s (ACTIVE)", magic_enum::enum_name(state).data());
+                } else {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));  // Gray for inactive
+                    ImGui::Text("%s (NOT ACTIVE)", magic_enum::enum_name(state).data());
+                }
+                ImGui::PopStyleColor();  
+            }
+            ImGui::Unindent(10);
+        }
+    }
+
+    void DebugUI::renderTimingInfo() {
+        ImGui::Text("Delta Time: %.6f", data->deltaTime);
+        ImGui::Text("Time: %.2f", data->time);
+        ImGui::Text("FPS: %.1f", data->fps);
+    }
+
+    void DebugUI::trashPile() {
+        if (ImGui::Checkbox("Wireframe", &data->showWireframe)) {
+        }
+
+       if (ImGui::Checkbox("MainWindow", &data->MainWindow))
+       {
+        /* code */
+       }
+        
+    }
+    void DebugUI::objects() {
+        if (data->objects)
+        {
+            for (auto &&ob : *data->objects)
+            {
+                object(ob);
+            }
+            
+        }
+        
+    }
+    void DebugUI::object(Object& object) {
+        if (ImGui::TreeNode((void*)(intptr_t)object.id, "Object ID: %u", object.id))
+        {
+            ImGui::ColorEdit3("Color", (float*)&object.color);
+            ImGui::DragFloat3("Position", glm::value_ptr(object.modelMatrix[3]), 0.1f);
+            ImGui::Text("Draw Mode: %s", magic_enum::enum_name(object.drawMode).data());
+            ImGui::Text("Vertices: %zu", object.vertices.size());
+            ImGui::Text("Indices: %zu", object.indices.size());
+            ImGui::Checkbox("Selected", &object.isSelected);
+            ImGui::TreePop();
+        }
+        
+    }
+}  // namespace Mir

@@ -6,14 +6,32 @@ namespace Mir {
     struct Vertex {
         glm::vec3 position;  // Position (x, y, z)
         glm::vec3 normal;    // Normal (nx, ny, nz)
+        Vertex() = default;
+        Vertex(float x, float y) : position(glm::vec3(x, y, 0)), normal(glm::vec3()) {}
+        Vertex(const glm::vec3& pos, const glm::vec3& norm) : position(pos), normal(norm) {}
+    };
+
+    enum class DrawMode {
+        Triangles,
+        TriangleFan,
+        Lines,
+        Points,
+        IndexedTriangles,
+        // Add more as needed
     };
 
     class Object {
       public:
-        std::vector<Vertex> vertices;
+        unsigned int id;
+        glm::vec3 color;
         glm::mat4 modelMatrix;
+        std::vector<Vertex> vertices;
+        std::vector<unsigned int> indices;
+        DrawMode drawMode = DrawMode::Triangles;
+        bool isSelected = false;
 
-        Object(const std::vector<Vertex>& verts) : vertices(verts), modelMatrix(glm::mat4(1.0f)) {}
+        Object(const std::vector<Vertex>& verts)
+            : id(nextId++), color(glm::vec3(1.0f)), modelMatrix(glm::mat4(1.0f)), vertices(verts), isSelected(false) {}
 
         void setPosition(const glm::vec3& position) { modelMatrix = glm::translate(glm::mat4(1.0f), position); }
 
@@ -22,6 +40,10 @@ namespace Mir {
         void setRotation(float angle, const glm::vec3& axis) {
             modelMatrix = glm::rotate(modelMatrix, glm::radians(angle), axis);
         }
+        void setColor(const glm::vec3& col) { color = col; }
+
+      private:
+        static unsigned int nextId;
     };
 
     enum class OriginLocation { BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT, CENTER };
@@ -60,4 +82,14 @@ namespace Mir {
             };
         }
     };
+
+    class Circle : public Object {
+      public:
+        Circle(float radius, int segments, glm::vec3 color = glm::vec3(1.0f));
+
+      private:
+        std::vector<Vertex> createCircleVertices(float radius, int segments);
+    };
+
+
 }  // namespace Mir

@@ -17,6 +17,7 @@
 #include "Examples/Colors.h"
 #include "Examples/Lighting.h"
 #include "Playground/Playground.h"
+#include "Playground2/Playground2.h"
 namespace Mir {
     void framebuffer_size_callback(GLFWwindow* /*window*/, int width, int height) {
         glViewport(0, 0, width, height);
@@ -76,6 +77,7 @@ namespace Mir {
         m_renderState.exampleManager->addExample(std::make_unique<Colors>());
         m_renderState.exampleManager->addExample(std::make_unique<Lighting>());
         m_renderState.exampleManager->addExample(std::make_unique<Playground>());
+        m_renderState.exampleManager->addExample(std::make_unique<Playground2::Playground2>());
         m_renderState.exampleManager->selectExample(8);
 
     }
@@ -124,8 +126,6 @@ void Window::render() {
         );
         glClear(GL_COLOR_BUFFER_BIT);
         
-        // Draw your OpenGL content with UI-controlled settings
-        glPolygonMode(GL_FRONT_AND_BACK, m_renderState.polygonMode);
         
         if (m_exampleManager.currentExample) {
             m_exampleManager.currentExample->render();

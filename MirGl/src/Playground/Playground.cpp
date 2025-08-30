@@ -2,12 +2,15 @@
 
 #include <stb/stb_image.h>
 
+#include "DebugUI.h"
 #include "Playground.h"
 #include "Primitives.h"
 #include "imgui.h"
 #include "log.h"
 #include "magic_enum/magic_enum.hpp"
+
 namespace Mir {
+
     void ScrollCallback(GLFWwindow* window, double xoffset, double yoffset) {
         (void)xoffset;
         auto* playground = static_cast<Mir::Playground*>(glfwGetWindowUserPointer(window));
@@ -21,6 +24,60 @@ namespace Mir {
 
     Playground::Playground() = default;
 
+    void Playground::updateDebugData() {
+        // Update perspective camera info
+        dData_m.perspectiveCamera.position = m_Camera->GetPosition();
+        dData_m.perspectiveCamera.front = m_Camera->GetFront();
+        dData_m.perspectiveCamera.up = m_Camera->GetUp();
+        dData_m.perspectiveCamera.right = m_Camera->GetRight();
+        dData_m.perspectiveCamera.yaw = m_Camera->GetYaw();
+        dData_m.perspectiveCamera.pitch = m_Camera->GetPitch();
+        dData_m.perspectiveCamera.zoom = m_Camera->GetZoom();
+
+        // Update orthographic camera info
+        dData_m.orthoCamera.position = m_orthoCamera->GetPosition();
+        dData_m.orthoCamera.front = glm::vec3(0.0f, 0.0f, -1.0f);  // Fixed for ortho camera
+        dData_m.orthoCamera.up = glm::vec3(0.0f, 1.0f, 0.0f);      // Fixed for ortho camera
+        dData_m.orthoCamera.right = glm::vec3(1.0f, 0.0f, 0.0f);   // Fixed for ortho camera
+        dData_m.orthoCamera.yaw = 0.0f;                            // Not applicable for ortho camera
+        dData_m.orthoCamera.pitch = 0.0f;                          // Not applicable for ortho camera
+        dData_m.orthoCamera.zoom = m_orthoCamera->GetZoom();
+
+        // Update mouse info
+        dData_m.mouse = &mouse_m;
+
+        // Update timing info
+        dData_m.deltaTime = m_deltaTime;
+        dData_m.time = m_time;
+        dData_m.fps = (m_deltaTime > 0.0f) ? 1.0f / m_deltaTime : 0.0f;
+
+        // Update window info
+        dData_m.windowWidth = m_windowWidth;
+        dData_m.windowHeight = m_windowHeight;
+        dData_m.aspectRatio = m_aspectRatio;
+
+        // Update debug matrices
+        dData_m.inverseProjection = glm::inverse(
+            useOrthoCamera ? m_orthoCamera->GetProjectionMatrix()
+                           : glm::perspective(glm::radians(m_Camera->GetZoom()), m_aspectRatio, 0.1f, 500.0f));
+        dData_m.inverseView = glm::inverse(useOrthoCamera ? m_orthoCamera->GetViewMatrix() : m_Camera->GetViewMatrix());
+
+        // General debug info
+        if (dData_m.showWireframe) {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
+        } else {
+            glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
+        }
+
+        if (dData_m.MainWindow) {
+            m_activeWindow = ActiveWindow::MAIN_VIEWPORT;
+        } else {
+            m_activeWindow = ActiveWindow::SECOND_VIEWPORT;
+        }
+
+        dData_m.objects = &objects_m;
+    }
+
     Playground::~Playground() {
         cleanup();
     }
@@ -32,117 +89,83 @@ namespace Mir {
 
         m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 10.0f));
         m_orthoCamera = std::make_unique<Mir::OrthoCamera>(
-            m_windowWidth, m_windowHeight, glm::vec3(0.0f, 0.0f, 1.0f), 1.0f, -1.0f, 10.0f);
-        m_shader = std::make_unique<Shader>("LightingBase.vs", "Lighting.fs");
-        m_lightingShader = std::make_unique<Shader>("LightingBase.vs", "LightingLightCube.fs");
+            m_windowWidth, m_windowHeight, glm::vec3(0.0f, 0.0f, 3.0f), 0.2f, -1.0f, 10.0f);
+        m_shader = std::make_unique<Shader>("Playground.vs", "Lighting.fs");
+        m_lightingShader = std::make_unique<Shader>("Playground.vs", "PlaygroundLight.fs");
+        dbUI_m.setData(&dData_m);
 
-        Square square(glm::vec3(0, 0, 0), 100.0f);
+        // Create objects and assign unique IDs
+        objects_m.clear();
+        objects_m.emplace_back(Square(glm::vec3(-10.0f, -10.0f, 0.0f), 10.0f));  // Object 1
+        objects_m.emplace_back(Square(glm::vec3(10.0f, 0.0f, 0.0f), 10.0f));     // Object 2
+        objects_m.emplace_back(Square(glm::vec3(0.0f, 10.0f, 0.0f), 10.0f));     // Object 3
+        objects_m.emplace_back(Circle(5.0, 6));
 
-        // Create another square at the origin with default size 1.0
-        Square defaultSquare;
+        lights_m.clear();
+        auto lightMesh1 = std::make_shared<Square>(glm::vec3(5.0f, 5.0f, 0.0f), 1.0f);
+        auto lightMesh2 = std::make_shared<Circle>(2.0f, 16, glm::vec3(-5.0f, -5.0f, 0.0f));
+        lights_m.push_back(Light(
+            Light::Controls{1.0f, glm::vec3(1.0f, 1.0f, 0.8f)}, glm::vec3(5.0f, 5.0f, 0.0f),
+            glm::vec3(1.0f, 1.0f, 0.8f), lightMesh1));
+        lights_m.push_back(Light(
+            Light::Controls{0.7f, glm::vec3(0.8f, 1.0f, 1.0f)}, glm::vec3(-5.0f, -5.0f, 0.0f),
+            glm::vec3(0.8f, 1.0f, 1.0f), lightMesh2));
 
-        objects_m.push_back(square);
-        // objects_m.push_back(defaultSquare);
-
-        for (const auto& object : objects_m) {
-            objectsVertexData_m.insert(objectsVertexData_m.end(), object.vertices.begin(), object.vertices.end());
+        std::vector<Vertex> combinedVertices;
+        size_t vertexOffset = 0;
+        for (auto& object : objects_m) {
+            vertexOffset += object.vertices.size();
+            combinedVertices.insert(combinedVertices.end(), object.vertices.begin(), object.vertices.end());
         }
 
-        glGenVertexArrays(1, &m_VAO);
-        glGenBuffers(1, &m_VBO);
+        // Setup main VBO and VAO
+        m_VAO = std::make_unique<Mir::VAO>();
+        m_VBO = std::make_unique<Mir::VBO>();
 
-        glBindVertexArray(m_VAO);
-        glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-        glBufferData(
-            GL_ARRAY_BUFFER, objectsVertexData_m.size() * sizeof(Vertex), objectsVertexData_m.data(), GL_STATIC_DRAW);
+        m_VAO->bind();
+        m_VBO->bind();
+        m_VBO->setData(combinedVertices);
 
-        // Position attribute (location = 0)
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
+        VertexLayouts layout = {
+            {0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, position)},
+            {1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal)}};
+        m_VAO->setupVertexAttributes(layout);
 
-        // Normal attribute (location = 1)
-        glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3 * sizeof(float)));
-        glEnableVertexAttribArray(1);
+        m_VBO->unbind();
+        m_VAO->unbind();
 
-        glBindBuffer(GL_ARRAY_BUFFER, 0);
-        glBindVertexArray(0);
+        // Setup lighting
+        m_lightVAO = std::make_unique<VAO>();
+        m_lightVAO->bind();
+        m_VBO->bind();
 
-        glGenVertexArrays(1, &m_lightVAO);
-        glBindVertexArray(m_lightVAO);
-        glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
-        glEnableVertexAttribArray(0);
+        VertexLayouts lightingLayout = {{0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0}};
+        m_lightVAO->setupVertexAttributes(lightingLayout);
 
-        setupFrameBuffers();
+        m_VBO->unbind();
+        m_lightVAO->unbind();
 
         glfwSetScrollCallback(glfwGetCurrentContext(), ScrollCallback);
         glfwSetWindowUserPointer(glfwGetCurrentContext(), this);
-
-        m_pickingTexture.Init(m_windowWidth, m_windowHeight);
     }
-
-    void Playground::setupFrameBuffers() {
-        // Create framebuffer for perspective camera
-        glGenFramebuffers(1, &m_perspectiveFramebuffer);
-        glBindFramebuffer(GL_FRAMEBUFFER, m_perspectiveFramebuffer);
-
-        // Create a texture to render to
-        glGenTextures(1, &m_perspectiveTextureColorbuffer);
-        glBindTexture(GL_TEXTURE_2D, m_perspectiveTextureColorbuffer);
-        glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, m_windowWidth, m_windowHeight, 0, GL_RGB, GL_UNSIGNED_BYTE, NULL);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-        glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0, GL_TEXTURE_2D, m_perspectiveTextureColorbuffer, 0);
-
-        // Create a renderbuffer object for depth and stencil attachment
-        glGenRenderbuffers(1, &m_perspectiveRBO);
-        glBindRenderbuffer(GL_RENDERBUFFER, m_perspectiveRBO);
-        glRenderbufferStorage(GL_RENDERBUFFER, GL_DEPTH24_STENCIL8, m_windowWidth, m_windowHeight);
-        glFramebufferRenderbuffer(GL_FRAMEBUFFER, GL_DEPTH_STENCIL_ATTACHMENT, GL_RENDERBUFFER, m_perspectiveRBO);
-
-        // Check if the framebuffer is complete
-        if (glCheckFramebufferStatus(GL_FRAMEBUFFER) != GL_FRAMEBUFFER_COMPLETE) {
-            std::cerr << "ERROR::FRAMEBUFFER:: Perspective framebuffer is not complete!" << std::endl;
-        }
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    void Playground::renderToFrameBuffer() {
-        // Render perspective camera view to framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, m_perspectiveFramebuffer);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
-
-        glm::mat4 perspectiveView = m_Camera->GetViewMatrix();
-        glm::mat4 perspectiveProjection =
-            glm::perspective(glm::radians(m_Camera->GetZoom()), m_aspectRatio, 0.1f, 500.0f);
-
-        m_shader->use();
-        m_shader->setMat4("view", perspectiveView);
-        m_shader->setMat4("projection", perspectiveProjection);
-
-        glBindVertexArray(m_VAO);
-        size_t vertexOffset = 0;
-        for (const auto& object : objects_m) {
-            glm::mat4 model = object.modelMatrix;
-            m_shader->setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, vertexOffset, object.vertices.size());
-            vertexOffset += object.vertices.size();
-        }
-
-        // Unbind framebuffer to render to the default framebuffer
-        glBindFramebuffer(GL_FRAMEBUFFER, 0);
-    }
-
-    bool camera_has_moved = false;
 
     void Playground::handleInput() {
         if (m_updateMousePos) {
-            // Automatically update mouse position
-            glfwGetCursorPos(glfwGetCurrentContext(), &mouse_m.x_screen, &mouse_m.y_screen);
+            bool leftPressed = glfwGetMouseButton(glfwGetCurrentContext(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
+            bool rightPressed = glfwGetMouseButton(glfwGetCurrentContext(), GLFW_MOUSE_BUTTON_RIGHT) == GLFW_PRESS;
+            bool middlePressed = glfwGetMouseButton(glfwGetCurrentContext(), GLFW_MOUSE_BUTTON_MIDDLE) == GLFW_PRESS;
+
+            mouse_m.updateState(leftPressed, rightPressed, middlePressed);
+
+            glfwGetCursorPos(glfwGetCurrentContext(), &mouse_m.screen.x, &mouse_m.screen.y);
+            glm::vec3 worldPos = ScreenToWorld(mouse_m.screen.x, mouse_m.screen.y);
+            mouse_m.world.x = worldPos.x;
+            mouse_m.world.y = worldPos.y;
+
         } else {
             // Use manually set mouse position
-            mouse_m.x_screen = m_manualMousePos.x;
-            mouse_m.y_screen = m_manualMousePos.y;
+            mouse_m.screen.x = m_manualMousePos.x;
+            mouse_m.screen.y = m_manualMousePos.y;
         }
 
         if (m_activeWindow == ActiveWindow::SECOND_VIEWPORT) {
@@ -167,7 +190,6 @@ namespace Mir {
                 m_orthoCamera->ProcessKeyboard(CameraMovement::UP, m_deltaTime);
             if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_S) == GLFW_PRESS) {
                 m_orthoCamera->ProcessKeyboard(CameraMovement::DOWN, m_deltaTime);
-                camera_has_moved = true;
             }
             if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_A) == GLFW_PRESS)
                 m_orthoCamera->ProcessKeyboard(CameraMovement::LEFT, m_deltaTime);
@@ -178,84 +200,112 @@ namespace Mir {
 
     void Playground::render() {
         glEnable(GL_BLEND);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
-        double currentTime = glfwGetTime();
-        m_deltaTime = currentTime - m_lastFrameTime;
-        m_lastFrameTime = currentTime;
-
-        glfwGetCursorPos(glfwGetCurrentContext(), &mouse_m.x_screen, &mouse_m.y_screen);
-
-        renderToFrameBuffer();
+        updateTime();
         handleInput();
+        updateDebugData();
 
-        glm::vec3 worldPos = ScreenToWorld(static_cast<float>(mouse_m.x_screen), static_cast<float>(mouse_m.y_screen));
-        mouse_m.x_world = worldPos.x;
-        mouse_m.y_world = worldPos.y;
+        glEnable(GL_DEPTH_TEST);
+        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        m_time += m_deltaTime;
+        // Set up camera, shader, etc. here if needed
 
-        // glm::mat4 view = m_Camera->GetViewMatrix();
-        // glm::mat4 projection = glm::perspective(glm::radians(m_Camera->GetZoom()), m_aspectRatio, 0.1f, 500.0f);
-
-        // glm::mat4 view = m_orthoCamera->GetViewMatrix();
-        // glm::mat4 projection = m_orthoCamera->GetProjectionMatrix();
+        // --- Main viewport ---
+        glViewport(0, 0, m_windowWidth, m_windowHeight);
 
         glm::mat4 view = useOrthoCamera ? m_orthoCamera->GetViewMatrix() : m_Camera->GetViewMatrix();
         glm::mat4 projection = useOrthoCamera
             ? m_orthoCamera->GetProjectionMatrix()
             : glm::perspective(glm::radians(m_Camera->GetZoom()), m_aspectRatio, 0.1f, 500.0f);
-        glEnable(GL_DEPTH_TEST);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
-        glm::vec3 lightPos(1.1f, 1.0f, 1.5f);
-        // glm::mat4 model = glm::mat4(1.0f);
+        drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
+        drawLights(view, projection);
+        // --- Minimap viewport setup ---
+        int minimapWidth = m_windowWidth / 4;
+        int minimapHeight = m_windowHeight / 4;
+        int minimapX = m_windowWidth - minimapWidth - 10;  // 10px from right
+        int minimapY = 10;                                 // 10px from bottom
 
+        glViewport(minimapX, minimapY, minimapWidth, minimapHeight);
+
+        // Set up perspective camera for minimap
+        glm::mat4 minimapView = m_Camera->GetViewMatrix();
+        glm::mat4 minimapProjection = glm::perspective(
+            glm::radians(m_Camera->GetZoom()), static_cast<float>(minimapWidth) / minimapHeight, 0.1f, 500.0f);
+
+        drawObjects(minimapView, minimapProjection);
+    }
+
+    void Playground::drawObjects(const glm::mat4& view, const glm::mat4& projection) {
         m_shader->use();
         m_shader->setMat4("view", view);
         m_shader->setMat4("projection", projection);
-        m_shader->setVec3("objectColor", glm::vec3(1.0f, 0.5f, 0.31f));
-        m_shader->setVec3("lightColor", glm::vec3(5.0f, 5.0f, 5.0f));
-        m_shader->setVec3("lightPos", lightPos);
-        m_shader->setVec3("viewPos", m_Camera->GetPosition());
-        // m_shader->setMat4("model", model);
-
-        glBindVertexArray(m_VAO);
-        size_t vertexOffset = 0;
-        for (const auto& object : objects_m) {
-            glm::mat4 model = object.modelMatrix;
-            m_shader->setMat4("model", model);
-            glDrawArrays(GL_TRIANGLES, vertexOffset, object.vertices.size());
-            vertexOffset += object.vertices.size();
+        if (useOrthoCamera) {
+            m_shader->setVec3("viewPos", m_orthoCamera->GetPosition());
+        } else {
+            m_shader->setVec3("viewPos", m_Camera->GetPosition());
         }
 
+        // --- Use VAO abstraction for geometry ---
+        m_VAO->bind();
+        size_t vertexOffset = 0;
+        for (const auto& object : objects_m) {
+            m_shader->setMat4("model", object.modelMatrix);
+            m_shader->setVec3("objectColor", object.color);
+
+            switch (object.drawMode) {
+                case DrawMode::Triangles:
+                    glDrawArrays(GL_TRIANGLES, vertexOffset, object.vertices.size());
+                    vertexOffset += object.vertices.size();
+                    break;
+                case DrawMode::TriangleFan:
+                    glDrawArrays(GL_TRIANGLE_FAN, vertexOffset, object.vertices.size());
+                    vertexOffset += object.vertices.size();
+                    break;
+                case DrawMode::Lines:
+                    glDrawArrays(GL_LINES, vertexOffset, object.vertices.size());
+                    vertexOffset += object.vertices.size();
+                    break;
+                case DrawMode::Points:
+                    glDrawArrays(GL_POINTS, vertexOffset, object.vertices.size());
+                    vertexOffset += object.vertices.size();
+                    break;
+                case DrawMode::IndexedTriangles:
+                    // If using indices and EBO, call glDrawElements here
+                    // glDrawElements(GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, ...);
+                    break;
+            }
+        }
+
+        // --- Use VAO abstraction for lighting ---
         glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, lightPos);
+        model = glm::translate(model, m_lightPosition);
         model = glm::scale(model, glm::vec3(0.1f));
         m_lightingShader->use();
         m_lightingShader->setMat4("view", view);
         m_lightingShader->setMat4("projection", projection);
         m_lightingShader->setMat4("model", model);
-        // Doesnt need to be set each frame but for now here :) since lightpos is in scope :))
-        glBindVertexArray(m_lightVAO);
 
+        m_lightVAO->bind();
         glDrawArrays(GL_TRIANGLES, 0, 6);
-        glDisable(GL_DEPTH_TEST);
+    }
+
+    void Playground::drawLights(const glm::mat4& view, const glm::mat4& projection) {
+        m_lightingShader->use();
+        m_lightingShader->setMat4("view", view);
+        m_lightingShader->setMat4("projection", projection);
+
+        for (const auto& light : lights_m) {
+            m_lightingShader->setMat4("model", light.mesh->modelMatrix);
+            m_lightingShader->setVec3("objectColor", light.controls.color);
+            m_VAO->bind();
+            glDrawArrays(GL_TRIANGLES, 0, light.mesh->vertices.size());
+        }
     }
 
     void Playground::cleanup() {
-        if (m_VAO) {
-            glDeleteVertexArrays(1, &m_VAO);
-            m_VAO = 0;
-        }
-        if (m_VBO) {
-            glDeleteBuffers(1, &m_VBO);
-            m_VBO = 0;
-        }
-        if (m_EBO) {
-            glDeleteBuffers(1, &m_EBO);
-            m_EBO = 0;
-        }
         if (m_texture1) {
             glDeleteTextures(1, &m_texture1);
             m_texture1 = 0;
@@ -284,6 +334,12 @@ namespace Mir {
 
         m_shader.reset();
     }
+    void Playground::updateTime() {
+        double currentTime = glfwGetTime();
+        m_deltaTime = currentTime - m_lastFrameTime;
+        m_lastFrameTime = currentTime;
+        m_time += m_deltaTime;
+    }
     glm::vec3 Playground::ScreenToWorld(float x_screen, float y_screen) {
         if (useOrthoCamera) {
             return m_orthoCamera->ScreenToWorld(x_screen, y_screen, m_windowWidth, m_windowHeight);
@@ -291,172 +347,9 @@ namespace Mir {
             return glm::vec3();
         }
     }
-    void Playground::debugUI_CameraInfo() {
-        // Perspective Camera Info
-        {
-            // Display important info in the dropdown title
-            auto cameraState = m_Camera->GetCameraState();
-            std::string perspectiveTitle = "Perspective Camera (Pos: " + std::to_string(cameraState.position.x) + ", " +
-                std::to_string(cameraState.position.y) + ", " + std::to_string(cameraState.position.z) + ")";
-
-            if (ImGui::TreeNode(perspectiveTitle.c_str())) {
-                ImGui::Text("Perspective Camera Info:");
-                ImGui::Text(
-                    "Position: (%.2f, %.2f, %.2f)", cameraState.position.x, cameraState.position.y,
-                    cameraState.position.z);
-                ImGui::Text("Yaw: %.2f°", cameraState.yaw);
-                ImGui::Text("Pitch: %.2f°", cameraState.pitch);
-                ImGui::Text("Zoom: %.2f°", cameraState.zoom);
-                ImGui::Text("Front: (%.2f, %.2f, %.2f)", cameraState.front.x, cameraState.front.y, cameraState.front.z);
-                ImGui::Text("Up: (%.2f, %.2f, %.2f)", cameraState.up.x, cameraState.up.y, cameraState.up.z);
-                ImGui::Text("Right: (%.2f, %.2f, %.2f)", cameraState.right.x, cameraState.right.y, cameraState.right.z);
-                ImGui::Text("Movement Speed: %.2f", cameraState.movementSpeed);
-                ImGui::Text("Mouse Sensitivity: %.3f", cameraState.mouseSensitivity);
-                ImGui::TreePop();
-            }
-        }
-
-        // Orthographic Camera Info
-        {
-            glm::vec3 orthoPos = m_orthoCamera->GetPosition();
-            float orthoZoom = m_orthoCamera->GetZoom();
-            std::string orthoTitle = "Orthographic Camera (Pos: " + std::to_string(orthoPos.x) + ", " +
-                std::to_string(orthoPos.y) + ", Zoom: " + std::to_string(orthoZoom) + ")";
-
-            if (ImGui::TreeNode(orthoTitle.c_str())) {
-                ImGui::Text("Orthographic Camera Info:");
-                ImGui::Text("Position: (%.2f, %.2f)", orthoPos.x, orthoPos.y);
-                ImGui::Text("Zoom: %.2f", orthoZoom);
-                ImGui::Text("Near Plane: %.2f", m_orthoCamera->GetNear());
-                ImGui::Text("Far Plane: %.2f", m_orthoCamera->GetFar());
-
-                // Display Projection Matrix
-                ImGui::Text("Projection Matrix:");
-                glm::mat4 orthoProjection = m_orthoCamera->GetProjectionMatrix();
-                for (int i = 0; i < 4; ++i) {
-                    ImGui::Text(
-                        "[%.3f, %.3f, %.3f, %.3f]", orthoProjection[i][0], orthoProjection[i][1], orthoProjection[i][2],
-                        orthoProjection[i][3]);
-                }
-
-                // Display View Matrix
-                ImGui::Text("View Matrix:");
-                glm::mat4 orthoView = m_orthoCamera->GetViewMatrix();
-                for (int i = 0; i < 4; ++i) {
-                    ImGui::Text(
-                        "[%.3f, %.3f, %.3f, %.3f]", orthoView[i][0], orthoView[i][1], orthoView[i][2], orthoView[i][3]);
-                }
-
-                ImGui::TreePop();
-            }
-        }
-    }
-
-    void Playground::debugUI_screenToWorld() {
-        ImGui::Begin("Window Info");
-
-        // Window dimensions and aspect ratio
-        ImGui::Text("Window Dimensions:");
-        ImGui::Text("Width: %d", m_windowWidth);
-        ImGui::Text("Height: %d", m_windowHeight);
-        ImGui::Text("Aspect Ratio: %.3f", m_aspectRatio);
-
-        // Timing information
-        ImGui::Separator();
-        ImGui::Text("Timing Info:");
-        ImGui::Text("Time: %.3f seconds", m_time);
-        ImGui::Text("Delta Time: %.6f seconds", m_deltaTime);
-        ImGui::Text("FPS: %.1f", 1.0 / m_deltaTime);
-
-        // Mouse information
-        ImGui::Separator();
-        ImGui::Text("Mouse Info:");
-        ImGui::Text("Screen Position: (%.1f, %.1f)", mouse_m.x_screen, mouse_m.y_screen);
-        ImGui::Text("View Position: (%.2f, %.2f)", mouse_m.x_view, mouse_m.y_view);
-        ImGui::Text("World Position: (%.2f, %.2f)", mouse_m.x_world, mouse_m.y_world);
-
-        // Debug data (ScreenToWorld)
-        ImGui::Separator();
-        ImGui::Text("ScreenToWorld Debug Data:");
-        ImGui::Text("NDC Coordinates: (%.3f, %.3f)", debugData_m.ndc.x, debugData_m.ndc.y);
-
-        ImGui::Text("Inverse Projection Matrix:");
-        for (int i = 0; i < 4; ++i) {
-            ImGui::Text(
-                "[%.3f, %.3f, %.3f, %.3f]", debugData_m.inverseProjection[i][0], debugData_m.inverseProjection[i][1],
-                debugData_m.inverseProjection[i][2], debugData_m.inverseProjection[i][3]);
-        }
-
-        ImGui::Text("Inverse View Matrix:");
-        for (int i = 0; i < 4; ++i) {
-            ImGui::Text(
-                "[%.3f, %.3f, %.3f, %.3f]", debugData_m.inverseView[i][0], debugData_m.inverseView[i][1],
-                debugData_m.inverseView[i][2], debugData_m.inverseView[i][3]);
-        }
-
-        ImGui::Text("World Position:");
-        ImGui::Text(
-            "X: %.3f, Y: %.3f, Z: %.3f", debugData_m.worldPosition.x, debugData_m.worldPosition.y,
-            debugData_m.worldPosition.z);
-
-        ImGui::End();
-    }
 
     void Playground::renderUI() {
-        ImGui::Begin("Example Settings");
-        ImGui::Text("Current state %s", magic_enum::enum_name(m_activeWindow).data());
-        // Camera toggle
-        ImGui::Separator();
-        ImGui::Checkbox("Use Ortho Camera", &useOrthoCamera);
-        debugUI_CameraInfo();
-        debugUI_screenToWorld();
-
-        ImGui::Checkbox("Update Mouse Position", &m_updateMousePos);
-
-        // Manual mouse position input
-        if (!m_updateMousePos) {
-            ImGui::InputFloat2("Manual Mouse Position", &m_manualMousePos.x);
-        }
-
-        ImGui::Separator();
-        ImGui::Text("Time: %.2f", m_time);
-        ImGui::Text("Delta Time: %.6f", m_deltaTime);
-        ImGui::Text("FPS: %.1f", 1.0f / m_deltaTime);
-
-        ImGui::Separator();
-        ImGui::Text("Mouse Info");
-        ImGui::Text("Window Position: (%.1f,%.1f)", mouse_m.x_screen, mouse_m.y_screen);
-        ImGui::Text("View Position: (%.2f,%.2f)", mouse_m.x_view, mouse_m.y_view);
-        ImGui::Text("World Position: (%.2f,%.2f)", mouse_m.x_world, mouse_m.y_world);
-
-        // Camera info
-        ImGui::Separator();
-        ImGui::Text("Camera Controls:");
-        ImGui::Text("WASD - Move camera");
-        ImGui::Text("Mouse - Look around");
-        ImGui::Text("Scroll - Zoom");
-
-        ImGui::Separator();
-        ImGui::Text("OpenGL State:");
-        ImGui::Text("Depth Test: %s", glIsEnabled(GL_DEPTH_TEST) ? "ON" : "OFF");
-        ImGui::Text("Face Culling: %s", glIsEnabled(GL_CULL_FACE) ? "ON" : "OFF");
-        ImGui::Text("Blend: %s", glIsEnabled(GL_BLEND) ? "ON" : "OFF");
-        ImGui::Separator();
-        ImGui::Text("Camera info");
-
-        ImGui::End();
-
-        ImGui::Begin("Perspective Camera View");
-
-        ImGui::Text("Perspective Camera View:");
-        ImGui::Image((void*)(intptr_t)m_perspectiveTextureColorbuffer, ImVec2(400, 300));
-        if (ImGui::Button("Control Main Window")) {
-            m_activeWindow = ActiveWindow::MAIN_VIEWPORT;
-        }
-        if (ImGui::Button("Control Second Window")) {
-            m_activeWindow = ActiveWindow::SECOND_VIEWPORT;
-        }
-        ImGui::End();
+        dbUI_m.render();
     }
 
 }  // namespace Mir

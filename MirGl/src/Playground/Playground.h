@@ -2,76 +2,92 @@
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
+#include <memory>
 #include <vector>
 
 #include "Camera.h"
+#include "DebugData.h"
+#include "DebugUI.h"
 #include "Examples/IExample.h"
+#include "Mouse.h"
 #include "Primitives.h"
-#include <memory>
-#include "PickingTexture.h"
+#include "VAO.h"
+#include "VBO.h"
+#include "Light.h"
+
 namespace Mir {
 
-    struct Mouse {
-        double x_screen;
-        double y_screen;
-        double x_view;
-        double y_view;
-        double x_world;
-        double y_world;
-    };
-
-    enum class ActiveWindow { MAIN_VIEWPORT, SECOND_VIEWPORT };
-
-    struct DebugData {
-        glm::vec2 ndc;                // Normalized Device Coordinates (NDC)
-        glm::mat4 inverseProjection;  // Inverse Projection Matrix
-        glm::mat4 inverseView;        // Inverse View Matrix
-        glm::vec3 worldPosition;      // World Position
-    };
-
+  
+  enum class ActiveWindow { MAIN_VIEWPORT, SECOND_VIEWPORT };
     class Playground : public IExample {
       public:
         Playground();
-        ~Playground() override;
-        void debugUI_CameraInfo();
-        void debugUI_screenToWorld();
-        void debugUI_windowInfo();
+        void updateDebugData();
+        DebugData dData_m;
 
-        void UpdateScrollOffsets(float xOffset, float yOffset) { 
+        void UpdateScrollOffsets(float xOffset, float yOffset) {
             m_scrollXOffset = xOffset;
             m_scrollYOffset = yOffset;
         };
 
-        void setup() override;
-        void setupFrameBuffers();
-        void renderToFrameBuffer();
+
         void handleInput();
-        void render() override;
-        void cleanup() override;
         OrthoCamera* getOrthoCamera() { return m_orthoCamera.get(); }
         Camera* getCamera() { return m_Camera.get(); }
-        
+
+        ~Playground() override;
+        void setup() override;
+        void render() override;
+        void drawObjects(const glm::mat4& view, const glm::mat4& projection);
+        void drawLights(const glm::mat4& view, const glm::mat4& projection);
+        void cleanup() override;
+        void updateTime();
         const char* getName() const override { return "Playground"; }
+        void renderUI() override;
 
         glm::vec3 ScreenToWorld(float x_screen, float y_screen);
-        void renderUI() override;
         bool useOrthoCamera = true;
 
       private:
-        ActiveWindow m_activeWindow = ActiveWindow::MAIN_VIEWPORT;
+        DebugUI dbUI_m;
+
+        ActiveWindow m_activeWindow = ActiveWindow::SECOND_VIEWPORT;
 
         std::vector<Object> objects_m;
-        std::vector<Vertex> objectsVertexData_m;
-        std::unique_ptr<Shader> m_shader;
-        std::unique_ptr<Shader> m_lightingShader;
+        std::vector<Light> lights_m;
+
+        // CAMERA
         std::unique_ptr<Camera> m_Camera;
         std::unique_ptr<OrthoCamera> m_orthoCamera;
-        unsigned int m_VAO, m_VBO, m_EBO, m_lightVAO;
+        bool showWireFrame = false;
+        float m_FOV = 45.0f;
+        int m_windowWidth = 800;
+        int m_windowHeight = 600;
+        float m_aspectRatio = static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight);
+        
+        // VBO & VAO
+        std::unique_ptr<Mir::VAO> m_VAO;
+        std::unique_ptr<Mir::VBO> m_VBO;
+        std::unique_ptr<Mir::VAO> m_lightVAO;
         unsigned int m_texture1, m_texture2;
-
+        
+        // SHADER
+        std::unique_ptr<Shader> m_shader;
+        std::unique_ptr<Shader> m_lightingShader;
+        
+        // MOUSE
         Mouse mouse_m;
+        double m_scrollXOffset = 0.0;  // Horizontal scroll offset
+        double m_scrollYOffset = 0.0;  // Vertical scroll offset
+        bool m_updateMousePos = true;
+        glm::vec2 m_manualMousePos = glm::vec2(0.0f, 0.0f);
 
-        PickingTexture m_pickingTexture;
+        //TIME
+        double m_time = 0.0f;
+        float m_delay = 1.0f;
+        double m_lastFrameTime = 0.0f;
+        double m_deltaTime = 0.0f;
+
 
         GLuint m_queryID = 0;
         float m_lastRenderTimeMs = 0.0f;
@@ -81,21 +97,12 @@ namespace Mir {
         GLuint m_perspectiveTextureColorbuffer = 0;
         GLuint m_perspectiveRBO = 0;
 
-        DebugData debugData_m;
-        bool m_updateMousePos = true;
-        glm::vec2 m_manualMousePos = glm::vec2(0.0f, 0.0f);
-        
-        double m_scrollXOffset = 0.0;  // Horizontal scroll offset
-        double m_scrollYOffset = 0.0;  // Vertical scroll offset
-        
-        float m_FOV = 45.0f;
-        int m_windowWidth = 800;
-        int m_windowHeight = 600;
-        float m_aspectRatio = static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight);
-        double m_time = 0.0f;
-        float m_delay = 1.0f;
-        double m_lastFrameTime = 0.0f;
-        double m_deltaTime = 0.0f;
-      }; 
+
+
+        float m_rotationAngle = 50.0f;
+        glm::vec3 m_rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
+        glm::vec3 m_lightPosition = glm::vec3(0.0f, 0.0f, 2.5f);
+
+    };
 
 }  // namespace Mir

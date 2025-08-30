@@ -55,6 +55,8 @@ namespace Mir {
         glm::vec3 GetFront() const { return m_Front; }
         glm::vec3 GetUp() const { return m_Up; }
         glm::vec3 GetRight() const { return m_Right; }
+        float GetYaw() const { return m_Yaw; }
+        float GetPitch() const { return m_Pitch; }
         float GetZoom() const { return m_Zoom; }
 
         struct CameraState {

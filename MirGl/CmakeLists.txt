@@ -1,7 +1,7 @@
 
 find_package(OpenGL REQUIRED)
 
-
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
 
 set(EXTERNAL_LIBS
   glad
@@ -30,14 +30,21 @@ set(SOURCES
     src/Examples/Lighting.cpp
     src/Playground/Playground.cpp
 
-    src/Playground/PickingTexture.cpp
+    src/Playground/Primitives.cpp
+    src/Playground/DebugUI.cpp
+    src/Playground/VBO.cpp
+    src/Playground/VAO.cpp
+
+
+    src/Playground2/Playground2.cpp
+    src/Playground2/PlayGroundCamera.cpp
 
 )
 
 add_executable(MirGl ${SOURCES})
 
 target_link_libraries(MirGl PRIVATE ${EXTERNAL_LIBS})
-
+target_compile_definitions(MirGl PRIVATE _USE_MATH_DEFINES)
 target_include_directories(MirGl PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src

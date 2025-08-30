@@ -10,8 +10,6 @@
 namespace Mir
 {
     struct RenderState {
-        GLenum polygonMode = GL_LINE;
-        bool showWireframe = true;
         float clearColor[4] = {0.2f, 0.3f, 0.3f, 1.0f};
         size_t selectedExample;
         ExampleManager* exampleManager;
