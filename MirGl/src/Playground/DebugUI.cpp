@@ -1,12 +1,13 @@
 #include "DebugUI.h"
 
+#include <glm/gtc/type_ptr.hpp>
 #include <magic_enum/magic_enum.hpp>
 
 #include "DebugData.h"
 #include "Mouse.h"
-#include "imgui.h"
 #include "Primitives.h"
-#include <glm/gtc/type_ptr.hpp>
+#include "imgui.h"
+#include "Light.h"
 namespace Mir {
 
     DebugUI::DebugUI(DebugData* debugData) : data(debugData) {}
@@ -50,7 +51,11 @@ namespace Mir {
             objects();
             ImGui::TreePop();
         }
-        
+
+        if (ImGui::TreeNode("Lights")) {
+            lights();
+            ImGui::TreePop();
+        }
 
         ImGui::End();
     }
@@ -92,7 +97,7 @@ namespace Mir {
 
             for (const auto& state : magic_enum::enum_values<MouseState>()) {
                 if (state == MouseState::NONE) {
-                    continue;  
+                    continue;
                 }
                 bool isPressed = (data->mouse->currentState & state) == state;
                 if (isPressed) {
@@ -102,7 +107,7 @@ namespace Mir {
                     ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(0.5f, 0.5f, 0.5f, 1.0f));  // Gray for inactive
                     ImGui::Text("%s (NOT ACTIVE)", magic_enum::enum_name(state).data());
                 }
-                ImGui::PopStyleColor();  
+                ImGui::PopStyleColor();
             }
             ImGui::Unindent(10);
         }
@@ -118,26 +123,19 @@ namespace Mir {
         if (ImGui::Checkbox("Wireframe", &data->showWireframe)) {
         }
 
-       if (ImGui::Checkbox("MainWindow", &data->MainWindow))
-       {
-        /* code */
-       }
-        
+        if (ImGui::Checkbox("MainWindow", &data->MainWindow)) {
+            /* code */
+        }
     }
     void DebugUI::objects() {
-        if (data->objects)
-        {
-            for (auto &&ob : *data->objects)
-            {
+        if (data->objects) {
+            for (auto&& ob : *data->objects) {
                 object(ob);
             }
-            
         }
-        
     }
     void DebugUI::object(Object& object) {
-        if (ImGui::TreeNode((void*)(intptr_t)object.id, "Object ID: %u", object.id))
-        {
+        if (ImGui::TreeNode((void*)(intptr_t)object.id, "Object ID: %u", object.id)) {
             ImGui::ColorEdit3("Color", (float*)&object.color);
             ImGui::DragFloat3("Position", glm::value_ptr(object.modelMatrix[3]), 0.1f);
             ImGui::Text("Draw Mode: %s", magic_enum::enum_name(object.drawMode).data());
@@ -146,6 +144,20 @@ namespace Mir {
             ImGui::Checkbox("Selected", &object.isSelected);
             ImGui::TreePop();
         }
-        
+    }
+    void DebugUI::lights() {
+        if (!data->lights) return;
+        int idx = 0;
+        for (auto& light : *data->lights) {
+            if (ImGui::TreeNode((void*)&light, "Light %d", idx++)) {
+                ImGui::ColorEdit3("Color", glm::value_ptr(light.controls.color));
+                ImGui::DragFloat("Intensity", &light.controls.intensity, 0.01f, 0.0f, 10.0f);
+                glm::vec3 pos = glm::vec3(light.mesh.modelMatrix[3]);
+                if (ImGui::DragFloat3("Position", glm::value_ptr(pos), 0.1f)) {
+                    light.mesh.modelMatrix = glm::translate(glm::mat4(1.0f), pos);
+                }
+                ImGui::TreePop();
+            }
+        }
     }
 }  // namespace Mir

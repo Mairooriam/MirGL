@@ -75,7 +75,12 @@ namespace Mir {
             m_activeWindow = ActiveWindow::SECOND_VIEWPORT;
         }
 
+        // OBJECTS
         dData_m.objects = &objects_m;
+
+
+        // LIGHTS
+        dData_m.lights = &lights_m;
     }
 
     Playground::~Playground() {
@@ -102,14 +107,21 @@ namespace Mir {
         objects_m.emplace_back(Circle(5.0, 6));
 
         lights_m.clear();
-        auto lightMesh1 = std::make_shared<Square>(glm::vec3(5.0f, 5.0f, 0.0f), 1.0f);
-        auto lightMesh2 = std::make_shared<Circle>(2.0f, 16, glm::vec3(-5.0f, -5.0f, 0.0f));
-        lights_m.push_back(Light(
-            Light::Controls{1.0f, glm::vec3(1.0f, 1.0f, 0.8f)}, glm::vec3(5.0f, 5.0f, 0.0f),
-            glm::vec3(1.0f, 1.0f, 0.8f), lightMesh1));
-        lights_m.push_back(Light(
-            Light::Controls{0.7f, glm::vec3(0.8f, 1.0f, 1.0f)}, glm::vec3(-5.0f, -5.0f, 0.0f),
-            glm::vec3(0.8f, 1.0f, 1.0f), lightMesh2));
+        // Define parameters for the first light
+        glm::vec3 light1Position = glm::vec3(5.0f, 5.0f, 3.0f);  // Z = 1.0f for visibility
+        glm::vec3 light1Color = glm::vec3(1.0f, 1.0f, 1.8f);
+        float light1Intensity = 1.0f;
+        auto lightMesh1 = Square(light1Position, 1.0f);
+        Light::Controls light1Controls{light1Intensity, light1Color};
+        lights_m.push_back(Light(light1Controls, lightMesh1));
+
+        // Define parameters for the second light
+        // glm::vec3 light2Position = glm::vec3(-5.0f, -5.0f, 3.0f);
+        // glm::vec3 light2Color = glm::vec3(0.8f, 1.0f, 1.0f);
+        // float light2Intensity = 0.7f;
+        // auto lightMesh2 = Circle(2.0f, 16, light2Position);
+        // Light::Controls light2Controls{light2Intensity, light2Color};
+        // lights_m.push_back(Light(light2Controls, lightMesh2));
 
         std::vector<Vertex> combinedVertices;
         size_t vertexOffset = 0;
@@ -133,17 +145,6 @@ namespace Mir {
 
         m_VBO->unbind();
         m_VAO->unbind();
-
-        // Setup lighting
-        m_lightVAO = std::make_unique<VAO>();
-        m_lightVAO->bind();
-        m_VBO->bind();
-
-        VertexLayouts lightingLayout = {{0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), 0}};
-        m_lightVAO->setupVertexAttributes(lightingLayout);
-
-        m_VBO->unbind();
-        m_lightVAO->unbind();
 
         glfwSetScrollCallback(glfwGetCurrentContext(), ScrollCallback);
         glfwSetWindowUserPointer(glfwGetCurrentContext(), this);
@@ -220,6 +221,13 @@ namespace Mir {
             ? m_orthoCamera->GetProjectionMatrix()
             : glm::perspective(glm::radians(m_Camera->GetZoom()), m_aspectRatio, 0.1f, 500.0f);
 
+        if (!lights_m.empty()) {
+            m_shader->use();
+            m_shader->setVec3("lightPos", glm::vec3(lights_m[0].mesh.modelMatrix[3]));
+            m_shader->setVec3("lightColor", lights_m[0].getLightColor());
+            // m_shader->setFloat("lightIntensity", lights_m[0].controls.intensity);
+        }
+
         drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
         drawLights(view, projection);
         // --- Minimap viewport setup ---
@@ -235,7 +243,10 @@ namespace Mir {
         glm::mat4 minimapProjection = glm::perspective(
             glm::radians(m_Camera->GetZoom()), static_cast<float>(minimapWidth) / minimapHeight, 0.1f, 500.0f);
 
+
+
         drawObjects(minimapView, minimapProjection);
+        drawLights(minimapView, minimapProjection);
     }
 
     void Playground::drawObjects(const glm::mat4& view, const glm::mat4& projection) {
@@ -279,17 +290,17 @@ namespace Mir {
             }
         }
 
-        // --- Use VAO abstraction for lighting ---
-        glm::mat4 model = glm::mat4(1.0f);
-        model = glm::translate(model, m_lightPosition);
-        model = glm::scale(model, glm::vec3(0.1f));
-        m_lightingShader->use();
-        m_lightingShader->setMat4("view", view);
-        m_lightingShader->setMat4("projection", projection);
-        m_lightingShader->setMat4("model", model);
+        // // --- Use VAO abstraction for lighting ---
+        // glm::mat4 model = glm::mat4(1.0f);
+        // model = glm::translate(model, m_lightPosition);
+        // model = glm::scale(model, glm::vec3(0.1f));
+        // m_lightingShader->use();
+        // m_lightingShader->setMat4("view", view);
+        // m_lightingShader->setMat4("projection", projection);
+        // m_lightingShader->setMat4("model", model);
 
-        m_lightVAO->bind();
-        glDrawArrays(GL_TRIANGLES, 0, 6);
+        // m_lightVAO->bind();
+        // glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
     void Playground::drawLights(const glm::mat4& view, const glm::mat4& projection) {
@@ -298,10 +309,10 @@ namespace Mir {
         m_lightingShader->setMat4("projection", projection);
 
         for (const auto& light : lights_m) {
-            m_lightingShader->setMat4("model", light.mesh->modelMatrix);
+            m_lightingShader->setMat4("model", light.mesh.modelMatrix);
             m_lightingShader->setVec3("objectColor", light.controls.color);
             m_VAO->bind();
-            glDrawArrays(GL_TRIANGLES, 0, light.mesh->vertices.size());
+            glDrawArrays(GL_TRIANGLES, 0, light.mesh.vertices.size());
         }
     }
 

@@ -16,13 +16,14 @@ namespace Mir {
             glm::vec3 color;
         }controls;
 
-        std::shared_ptr<Object> mesh;  
+        Object mesh;  
 
-        Light(const Controls& control, const glm::vec3& position, const glm::vec3& color, std::shared_ptr<Object> meshObj)
+        Light(const Controls& control, const Object& meshObj)
             : controls(control), mesh(meshObj) {
-            mesh->setColor(color);
-            mesh->setPosition(position);
-            
+        }
+
+        glm::vec3 getLightColor() {
+            return controls.color * controls.intensity;
         }
     };
 }  // namespace Mir

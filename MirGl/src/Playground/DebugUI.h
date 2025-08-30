@@ -19,6 +19,7 @@ namespace Mir {
         void trashPile();
         void objects();
         void object(Object& object);
+        void lights();
         
 
     };

@@ -8,6 +8,7 @@ namespace Mir {
     struct Mouse;
     enum class ActiveWindow;
     class Object;
+    class Light;
     struct DebugData {
         // Camera Info
 
@@ -52,6 +53,6 @@ namespace Mir {
     
 
         //Lights control
-        glm::vec3* color;
+        std::vector<Light>* lights = nullptr;
     };
 }
