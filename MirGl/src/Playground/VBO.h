@@ -1,7 +1,9 @@
 #pragma once
 #include "glad/glad.h"
 #include <vector>
+
 namespace Mir {
+    class Vertex;
     class VBO {
     public:
         VBO();
@@ -16,7 +18,7 @@ namespace Mir {
             glBindBuffer(GL_ARRAY_BUFFER, m_VBO);
             glBufferData(GL_ARRAY_BUFFER, data.size() * sizeof(T), data.data(), usage);
         }
-
+        void updateVertex(size_t offset, const Vertex& vertex);
         GLuint id() const { return m_VBO; }
 
     private:

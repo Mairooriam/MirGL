@@ -9,17 +9,19 @@
 #include "DebugData.h"
 #include "DebugUI.h"
 #include "Examples/IExample.h"
+#include "Light.h"
 #include "Mouse.h"
 #include "Primitives.h"
 #include "VAO.h"
 #include "VBO.h"
-#include "Light.h"
+
 namespace Mir {
 
-  
-  enum class ActiveWindow { MAIN_VIEWPORT, SECOND_VIEWPORT };
+    enum class ActiveWindow { MAIN_VIEWPORT, SECOND_VIEWPORT };
+    enum class DragAndDropState{ NONE, STARTED, ENDED };
     class Playground : public IExample {
       public:
+
         Playground();
         void updateDebugData();
         DebugData dData_m;
@@ -28,7 +30,6 @@ namespace Mir {
             m_scrollXOffset = xOffset;
             m_scrollYOffset = yOffset;
         };
-
 
         void handleInput();
         OrthoCamera* getOrthoCamera() { return m_orthoCamera.get(); }
@@ -65,17 +66,17 @@ namespace Mir {
         int m_windowWidth = 800;
         int m_windowHeight = 600;
         float m_aspectRatio = static_cast<float>(m_windowWidth) / static_cast<float>(m_windowHeight);
-        
+
         // VBO & VAO
         std::unique_ptr<Mir::VAO> m_VAO;
         std::unique_ptr<Mir::VBO> m_VBO;
         std::unique_ptr<Mir::VAO> m_lightVAO;
         unsigned int m_texture1, m_texture2;
-        
+
         // SHADER
         std::unique_ptr<Shader> m_shader;
         std::unique_ptr<Shader> m_lightingShader;
-        
+
         // MOUSE
         Mouse mouse_m;
         double m_scrollXOffset = 0.0;  // Horizontal scroll offset
@@ -83,12 +84,11 @@ namespace Mir {
         bool m_updateMousePos = true;
         glm::vec2 m_manualMousePos = glm::vec2(0.0f, 0.0f);
 
-        //TIME
+        // TIME
         double m_time = 0.0f;
         float m_delay = 1.0f;
         double m_lastFrameTime = 0.0f;
         double m_deltaTime = 0.0f;
-
 
         GLuint m_queryID = 0;
         float m_lastRenderTimeMs = 0.0f;
@@ -98,15 +98,12 @@ namespace Mir {
         GLuint m_perspectiveTextureColorbuffer = 0;
         GLuint m_perspectiveRBO = 0;
 
-
-
         float m_rotationAngle = 50.0f;
         glm::vec3 m_rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
         glm::vec3 m_lightPosition = glm::vec3(0.0f, 0.0f, 2.5f);
 
-
-        // physics
-
-    };
+        // DRAG AND DROP
+        DragDrop dragDrop_m;
+      };
 
 }  // namespace Mir

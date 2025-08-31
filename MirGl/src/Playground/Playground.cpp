@@ -81,6 +81,9 @@ namespace Mir {
 
         // LIGHTS
         dData_m.lights = &lights_m;
+
+        // DRAG & DROP
+        dData_m.dragDrop = &dragDrop_m;
     }
 
     Playground::~Playground() {
@@ -171,6 +174,24 @@ namespace Mir {
             // Use manually set mouse position
             mouse_m.screen.x = m_manualMousePos.x;
             mouse_m.screen.y = m_manualMousePos.y;
+        }
+
+        if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED) && dragDrop_m.isDraggingVertex) {
+            if (dragDrop_m.isDraggingVertex && dragDrop_m.obj && dragDrop_m.vertexIdx >= 0) {
+                glm::vec3 newWorldPos = ScreenToWorld(mouse_m.screen.x, mouse_m.screen.y);
+                glm::vec3 newLocalPos = glm::inverse(dragDrop_m.obj->modelMatrix) * glm::vec4(newWorldPos, 1.0f);
+                dragDrop_m.obj->vertices[dragDrop_m.vertexIdx].position = newLocalPos;
+
+                m_VBO->updateVertex(
+                    dragDrop_m.objectIdx, objects_m[dragDrop_m.objectIdx].vertices[dragDrop_m.vertexIdx]);
+            }
+        }
+
+        if (mouse_m.isStateActive(MouseState::MOUSE_1_RELEASED)) {
+            dragDrop_m.isDraggingVertex = false;
+            dragDrop_m.objectIdx = -1;
+            dragDrop_m.vertexIdx = -1;
+            dragDrop_m.obj = nullptr;
         }
 
         if (m_activeWindow == ActiveWindow::SECOND_VIEWPORT) {
@@ -361,18 +382,26 @@ namespace Mir {
                         vertex.position.z);
                     vertex.selected = true;
                     anyVertexSelected = true;
+                    if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED)) {
+                        dragDrop_m.isDraggingVertex = true;
+                        dragDrop_m.vertexIdx = &vertex - &object.vertices[0];
+                    }
+
                 } else {
                     vertex.selected = false;
                 }
 
-
-                if (anyVertexSelected)
-                {
+                if (anyVertexSelected) {
                     object.isSelected = true;
-                }else{
+                    if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED)) {
+                        dragDrop_m.obj = &object;
+                        dragDrop_m.objectIdx = &object - &objects[0];
+                    }
+
+                } else {
                     object.isSelected = false;
                 }
-                
+
                 // Handle selection: highlight, store index, etc.
             }
         }

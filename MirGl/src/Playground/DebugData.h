@@ -4,7 +4,10 @@
 #include <string>
 #include <vector>
 
+
 namespace Mir {
+    struct DragDrop;
+
     struct Mouse;
     enum class ActiveWindow;
     class Object;
@@ -54,5 +57,8 @@ namespace Mir {
 
         //Lights control
         std::vector<Light>* lights = nullptr;
+
+        //
+        DragDrop* dragDrop = nullptr;
     };
 }

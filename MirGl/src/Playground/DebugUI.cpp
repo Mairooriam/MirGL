@@ -4,10 +4,12 @@
 #include <magic_enum/magic_enum.hpp>
 
 #include "DebugData.h"
+#include "Light.h"
 #include "Mouse.h"
 #include "Primitives.h"
 #include "imgui.h"
-#include "Light.h"
+
+
 namespace Mir {
 
     DebugUI::DebugUI(DebugData* debugData) : data(debugData) {}
@@ -57,6 +59,11 @@ namespace Mir {
             ImGui::TreePop();
         }
 
+        if (ImGui::TreeNode("Drag & Drop Info")) {
+            renderDragDropInfo();
+            ImGui::TreePop();
+        }
+
         ImGui::End();
     }
 
@@ -71,14 +78,20 @@ namespace Mir {
         ImGui::Text("Inverse Projection Matrix:");
         for (int i = 0; i < 4; ++i) {
             ImGui::Text(
-                "[%.3f, %.3f, %.3f, %.3f]", data->inverseProjection[i][0], data->inverseProjection[i][1],
-                data->inverseProjection[i][2], data->inverseProjection[i][3]);
+                "[%.3f, %.3f, %.3f, %.3f]",
+                data->inverseProjection[i][0],
+                data->inverseProjection[i][1],
+                data->inverseProjection[i][2],
+                data->inverseProjection[i][3]);
         }
 
         ImGui::Text("Inverse View Matrix:");
         for (int i = 0; i < 4; ++i) {
             ImGui::Text(
-                "[%.3f, %.3f, %.3f, %.3f]", data->inverseView[i][0], data->inverseView[i][1], data->inverseView[i][2],
+                "[%.3f, %.3f, %.3f, %.3f]",
+                data->inverseView[i][0],
+                data->inverseView[i][1],
+                data->inverseView[i][2],
                 data->inverseView[i][3]);
         }
     }
@@ -159,5 +172,20 @@ namespace Mir {
                 ImGui::TreePop();
             }
         }
+    }
+
+    void DebugUI::renderDragDropInfo() {
+        if (!data) return;
+        // Assuming you have a pointer to Playground or DragDrop struct in DebugData
+        const auto& dragDrop = data->dragDrop;  // Add DragDrop* dragDrop to DebugData
+
+        ImGui::Text("Is Dragging Vertex: %s", dragDrop->isDraggingVertex ? "true" : "false");
+        ImGui::Text("Object Index: %d", dragDrop->objectIdx);
+        ImGui::Text("Vertex Index: %d", dragDrop->vertexIdx);
+        if (data->dragDrop && data->dragDrop->obj)
+        {
+            object(*data->dragDrop->obj);
+        }
+                
     }
 }  // namespace Mir

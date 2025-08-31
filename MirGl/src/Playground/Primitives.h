@@ -5,8 +5,8 @@ namespace Mir {
 
     struct Vertex {
         glm::vec3 position;  // Position (x, y, z)
-        glm::vec3 normal; 
-        bool selected = false;  
+        glm::vec3 normal;
+        bool selected = false;
         Vertex() = default;
         Vertex(float x, float y) : position(glm::vec3(x, y, 0)), normal(glm::vec3()) {}
         Vertex(const glm::vec3& pos, const glm::vec3& norm) : position(pos), normal(norm) {}
@@ -52,7 +52,8 @@ namespace Mir {
     class Square : public Object {
       public:
         Square(
-            const glm::vec3& position = glm::vec3(0.0f), float size = 1.0f,
+            const glm::vec3& position = glm::vec3(0.0f),
+            float size = 1.0f,
             OriginLocation origin = OriginLocation::CENTER)
             : Object(createSquareVertices(size, origin)) {
             setPosition(position);
@@ -92,27 +93,27 @@ namespace Mir {
         std::vector<Vertex> createCircleVertices(float radius, int segments);
     };
 
-    class Dot
-    {
-    private:
-      /* data */
-    public:
-      Dot(/* args */);
-      ~Dot();
+    class Dot {
+      private:
+        /* data */
+      public:
+        Dot(/* args */);
+        ~Dot();
     };
-    
-    class Line
-    {
-    private:
-      /* data */
-    public:
-      Line(/* args */);
-      ~Line();
+
+    class Line {
+      private:
+        /* data */
+      public:
+        Line(/* args */);
+        ~Line();
     };
-    
 
-    
-    
-
+    struct DragDrop {
+        int objectIdx = -1;
+        int vertexIdx = -1;
+        bool isDraggingVertex = false;
+        Object* obj = nullptr;
+    };
 
 }  // namespace Mir
