@@ -9,6 +9,13 @@ in vec3 FragPos;
 in vec3 Normal; 
 void main()
 {
+    if (gl_PointCoord.x != 0.0 || gl_PointCoord.y != 0.0) {
+        float dist = length(gl_PointCoord - vec2(0.5));
+        if (dist > 0.5)
+            discard;
+    }
+
+
     float specularStrength = 0.5;
     float ambientStrength = 0.1;
     vec3 ambient = ambientStrength * lightColor;

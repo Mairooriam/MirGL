@@ -5,7 +5,8 @@ namespace Mir {
 
     struct Vertex {
         glm::vec3 position;  // Position (x, y, z)
-        glm::vec3 normal;    // Normal (nx, ny, nz)
+        glm::vec3 normal; 
+        bool selected = false;  
         Vertex() = default;
         Vertex(float x, float y) : position(glm::vec3(x, y, 0)), normal(glm::vec3()) {}
         Vertex(const glm::vec3& pos, const glm::vec3& norm) : position(pos), normal(norm) {}
@@ -90,6 +91,28 @@ namespace Mir {
       private:
         std::vector<Vertex> createCircleVertices(float radius, int segments);
     };
+
+    class Dot
+    {
+    private:
+      /* data */
+    public:
+      Dot(/* args */);
+      ~Dot();
+    };
+    
+    class Line
+    {
+    private:
+      /* data */
+    public:
+      Line(/* args */);
+      ~Line();
+    };
+    
+
+    
+    
 
 
 }  // namespace Mir

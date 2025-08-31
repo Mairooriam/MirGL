@@ -14,7 +14,6 @@
 #include "VAO.h"
 #include "VBO.h"
 #include "Light.h"
-
 namespace Mir {
 
   
@@ -38,8 +37,10 @@ namespace Mir {
         ~Playground() override;
         void setup() override;
         void render() override;
+        void drawObject(const Object& object, size_t& offset);
         void drawObjects(const glm::mat4& view, const glm::mat4& projection);
         void drawLights(const glm::mat4& view, const glm::mat4& projection);
+        void checkCollision(std::vector<Object>& objects, const glm::mat4& view, const glm::mat4& projection);
         void cleanup() override;
         void updateTime();
         const char* getName() const override { return "Playground"; }
@@ -102,6 +103,9 @@ namespace Mir {
         float m_rotationAngle = 50.0f;
         glm::vec3 m_rotationAxis = glm::vec3(0.0f, 0.0f, 1.0f);
         glm::vec3 m_lightPosition = glm::vec3(0.0f, 0.0f, 2.5f);
+
+
+        // physics
 
     };
 

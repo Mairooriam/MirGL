@@ -48,7 +48,7 @@ namespace Mir {
             glm::vec3 m_Up;
             glm::vec3 m_Right;
             glm::vec3 m_WorldUp;
-
+            
             float m_Yaw;
             float m_Pitch;
 
@@ -96,6 +96,7 @@ namespace Mir {
             glm::vec3 ScreenToWorld(float x_screen, float y_screen, float windowWidth, float windowHeight) const override;
 
             void ProcessKeyboard(CameraMovement direction, float deltaTime) override;
+            
             void ProcessMouseScroll(float yoffset) override;
         };
 

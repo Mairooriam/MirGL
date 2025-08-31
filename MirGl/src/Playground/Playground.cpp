@@ -2,6 +2,7 @@
 
 #include <stb/stb_image.h>
 
+#include "Collision.h"
 #include "DebugUI.h"
 #include "Playground.h"
 #include "Primitives.h"
@@ -78,7 +79,6 @@ namespace Mir {
         // OBJECTS
         dData_m.objects = &objects_m;
 
-
         // LIGHTS
         dData_m.lights = &lights_m;
     }
@@ -92,6 +92,8 @@ namespace Mir {
             glGenQueries(1, &m_queryID);
         }
 
+        glEnable(GL_PROGRAM_POINT_SIZE);
+
         m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 10.0f));
         m_orthoCamera = std::make_unique<Mir::OrthoCamera>(
             m_windowWidth, m_windowHeight, glm::vec3(0.0f, 0.0f, 3.0f), 0.2f, -1.0f, 10.0f);
@@ -104,7 +106,9 @@ namespace Mir {
         objects_m.emplace_back(Square(glm::vec3(-10.0f, -10.0f, 0.0f), 10.0f));  // Object 1
         objects_m.emplace_back(Square(glm::vec3(10.0f, 0.0f, 0.0f), 10.0f));     // Object 2
         objects_m.emplace_back(Square(glm::vec3(0.0f, 10.0f, 0.0f), 10.0f));     // Object 3
-        objects_m.emplace_back(Circle(5.0, 6));
+        objects_m.emplace_back(Circle(5.0, 8));
+
+        objects_m[0].drawMode = DrawMode::Points;
 
         lights_m.clear();
         // Define parameters for the first light
@@ -228,6 +232,7 @@ namespace Mir {
             // m_shader->setFloat("lightIntensity", lights_m[0].controls.intensity);
         }
 
+        checkCollision(objects_m, view, projection);
         drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
         drawLights(view, projection);
         // --- Minimap viewport setup ---
@@ -243,10 +248,34 @@ namespace Mir {
         glm::mat4 minimapProjection = glm::perspective(
             glm::radians(m_Camera->GetZoom()), static_cast<float>(minimapWidth) / minimapHeight, 0.1f, 500.0f);
 
-
-
         drawObjects(minimapView, minimapProjection);
         drawLights(minimapView, minimapProjection);
+    }
+
+    void Playground::drawObject(const Object& object, size_t& offset) {
+        switch (object.drawMode) {
+            case DrawMode::Triangles:
+                glDrawArrays(GL_TRIANGLES, offset, object.vertices.size());
+                offset += object.vertices.size();
+                break;
+            case DrawMode::TriangleFan:
+                glDrawArrays(GL_TRIANGLE_FAN, offset, object.vertices.size());
+                offset += object.vertices.size();
+                break;
+            case DrawMode::Lines:
+                glDrawArrays(GL_LINES, offset, object.vertices.size());
+                offset += object.vertices.size();
+                break;
+            case DrawMode::Points:
+                glDrawArrays(GL_POINTS, offset, object.vertices.size());
+                offset += object.vertices.size();
+                break;
+
+            case DrawMode::IndexedTriangles:
+                // If using indices and EBO, call glDrawElements here
+                // glDrawElements(GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, ...);
+                break;
+        }
     }
 
     void Playground::drawObjects(const glm::mat4& view, const glm::mat4& projection) {
@@ -263,30 +292,23 @@ namespace Mir {
         m_VAO->bind();
         size_t vertexOffset = 0;
         for (const auto& object : objects_m) {
+            size_t objectStartOffset = vertexOffset;
             m_shader->setMat4("model", object.modelMatrix);
             m_shader->setVec3("objectColor", object.color);
-
-            switch (object.drawMode) {
-                case DrawMode::Triangles:
-                    glDrawArrays(GL_TRIANGLES, vertexOffset, object.vertices.size());
-                    vertexOffset += object.vertices.size();
-                    break;
-                case DrawMode::TriangleFan:
-                    glDrawArrays(GL_TRIANGLE_FAN, vertexOffset, object.vertices.size());
-                    vertexOffset += object.vertices.size();
-                    break;
-                case DrawMode::Lines:
-                    glDrawArrays(GL_LINES, vertexOffset, object.vertices.size());
-                    vertexOffset += object.vertices.size();
-                    break;
-                case DrawMode::Points:
-                    glDrawArrays(GL_POINTS, vertexOffset, object.vertices.size());
-                    vertexOffset += object.vertices.size();
-                    break;
-                case DrawMode::IndexedTriangles:
-                    // If using indices and EBO, call glDrawElements here
-                    // glDrawElements(GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, ...);
-                    break;
+            drawObject(object, vertexOffset);
+            if (object.isSelected) {
+                glDisable(GL_DEPTH_TEST);
+                for (const auto& vertex : object.vertices) {
+                    if (vertex.selected) {
+                        size_t vertexIndex = &vertex - &object.vertices[0];
+                        size_t globalIndex = objectStartOffset + vertexIndex;  // Correct calculation
+                        glm::mat4 model = object.modelMatrix;
+                        m_shader->setMat4("model", model);
+                        m_shader->setVec3("objectColor", glm::vec3(1.0f, 0.0f, 0.0f));
+                        glDrawArrays(GL_POINTS, globalIndex, 1);
+                    }
+                }
+                glEnable(GL_DEPTH_TEST);
             }
         }
 
@@ -313,6 +335,46 @@ namespace Mir {
             m_lightingShader->setVec3("objectColor", light.controls.color);
             m_VAO->bind();
             glDrawArrays(GL_TRIANGLES, 0, light.mesh.vertices.size());
+        }
+    }
+
+    void Playground::checkCollision(std::vector<Object>& objects, const glm::mat4& view, const glm::mat4& projection) {
+        for (auto& object : objects) {
+            bool anyVertexSelected = false;
+            for (auto& vertex : object.vertices) {
+                if (Mir::isPointSelected(
+                        vertex.position,
+                        object.modelMatrix,
+                        view,
+                        projection,
+                        m_windowWidth,
+                        m_windowHeight,
+                        mouse_m.screen.x,
+                        mouse_m.screen.y,
+                        5.0f  // selection radius in pixels
+                        )) {
+                    printf(
+                        "Colliding with object (%i), vertex (x,y,z): (%0.1f, %0.1f, %0.1f)\n",
+                        object.id,
+                        vertex.position.x,
+                        vertex.position.y,
+                        vertex.position.z);
+                    vertex.selected = true;
+                    anyVertexSelected = true;
+                } else {
+                    vertex.selected = false;
+                }
+
+
+                if (anyVertexSelected)
+                {
+                    object.isSelected = true;
+                }else{
+                    object.isSelected = false;
+                }
+                
+                // Handle selection: highlight, store index, etc.
+            }
         }
     }
 
