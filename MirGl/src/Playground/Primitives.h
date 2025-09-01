@@ -43,6 +43,11 @@ namespace Mir {
         }
         void setColor(const glm::vec3& col) { color = col; }
 
+        const std::vector<unsigned int>& getIndices() const { return indices; }
+        void setIndices(const std::vector<unsigned int>& idx) { indices = idx; }
+
+        void setDrawMode(DrawMode mode) { drawMode = mode; }
+
       private:
         static unsigned int nextId;
     };
@@ -57,6 +62,8 @@ namespace Mir {
             OriginLocation origin = OriginLocation::CENTER)
             : Object(createSquareVertices(size, origin)) {
             setPosition(position);
+            setIndices({0, 1, 2, 2, 3, 0});
+            setDrawMode(DrawMode::IndexedTriangles);
         }
 
       private:
@@ -75,12 +82,10 @@ namespace Mir {
 
             // Create vertices with the adjusted origin
             return {
-                {{-halfSize + originOffset.x, -halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}},  // Bottom-left
-                {{halfSize + originOffset.x, -halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}},   // Bottom-right
-                {{halfSize + originOffset.x, halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}},    // Top-right
-                {{halfSize + originOffset.x, halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}},    // Top-right
-                {{-halfSize + originOffset.x, halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}},   // Top-left
-                {{-halfSize + originOffset.x, -halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}}   // Bottom-left
+                {{-halfSize + originOffset.x, -halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}},  // 0: Bottom-left
+                {{halfSize + originOffset.x, -halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}},  // 1: Bottom-right
+                {{halfSize + originOffset.x, halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}},   // 2: Top-right
+                {{-halfSize + originOffset.x, halfSize + originOffset.y, 0.0f}, {0.0f, 0.0f, 1.0f}}   // 3: Top-left
             };
         }
     };
@@ -113,6 +118,8 @@ namespace Mir {
         int objectIdx = -1;
         int vertexIdx = -1;
         bool isDraggingVertex = false;
+        int globalVboOffset = -1;
+
         Object* obj = nullptr;
     };
 

@@ -9,7 +9,6 @@
 #include "Primitives.h"
 #include "imgui.h"
 
-
 namespace Mir {
 
     DebugUI::DebugUI(DebugData* debugData) : data(debugData) {}
@@ -155,6 +154,12 @@ namespace Mir {
             ImGui::Text("Vertices: %zu", object.vertices.size());
             ImGui::Text("Indices: %zu", object.indices.size());
             ImGui::Checkbox("Selected", &object.isSelected);
+            ImGui::Separator();
+            ImGui::Text("Dragged Object Vertices:");
+            int vIdx = 0;
+            for (const auto& v : object.vertices) {
+                ImGui::Text("Vertex %d: (%.3f, %.3f, %.3f)", vIdx++, v.position.x, v.position.y, v.position.z);
+            }
             ImGui::TreePop();
         }
     }
@@ -182,10 +187,15 @@ namespace Mir {
         ImGui::Text("Is Dragging Vertex: %s", dragDrop->isDraggingVertex ? "true" : "false");
         ImGui::Text("Object Index: %d", dragDrop->objectIdx);
         ImGui::Text("Vertex Index: %d", dragDrop->vertexIdx);
-        if (data->dragDrop && data->dragDrop->obj)
-        {
+        ImGui::Text("Vertex global offset: %d", dragDrop->globalVboOffset);
+        if (data->dragDrop && data->dragDrop->obj) {
             object(*data->dragDrop->obj);
+            ImGui::Separator();
+            ImGui::Text("Dragged Object Vertices:");
+            int vIdx = 0;
+            for (const auto& v : data->dragDrop->obj->vertices) {
+                ImGui::Text("Vertex %d: (%.3f, %.3f, %.3f)", vIdx++, v.position.x, v.position.y, v.position.z);
+            }
         }
-                
     }
 }  // namespace Mir

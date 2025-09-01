@@ -14,6 +14,7 @@
 #include "Primitives.h"
 #include "VAO.h"
 #include "VBO.h"
+#include "EBO.h"
 
 namespace Mir {
 
@@ -37,8 +38,10 @@ namespace Mir {
 
         ~Playground() override;
         void setup() override;
+        void setupLights();
+        void setupObjects();
         void render() override;
-        void drawObject(const Object& object, size_t& offset);
+        void drawObject(const Object& object, size_t& offset, size_t& indexOffset);
         void drawObjects(const glm::mat4& view, const glm::mat4& projection);
         void drawLights(const glm::mat4& view, const glm::mat4& projection);
         void checkCollision(std::vector<Object>& objects, const glm::mat4& view, const glm::mat4& projection);
@@ -70,7 +73,9 @@ namespace Mir {
         // VBO & VAO
         std::unique_ptr<Mir::VAO> m_VAO;
         std::unique_ptr<Mir::VBO> m_VBO;
+        std::unique_ptr<Mir::EBO> m_EBO;
         std::unique_ptr<Mir::VAO> m_lightVAO;
+        std::unique_ptr<Mir::VBO> m_lightVBO;
         unsigned int m_texture1, m_texture2;
 
         // SHADER

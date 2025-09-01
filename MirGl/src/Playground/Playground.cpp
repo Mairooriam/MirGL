@@ -97,14 +97,54 @@ namespace Mir {
 
         glEnable(GL_PROGRAM_POINT_SIZE);
 
+        // SETUP CAMERA
         m_Camera = std::make_unique<Camera>(glm::vec3(0.0f, 0.0f, 10.0f));
         m_orthoCamera = std::make_unique<Mir::OrthoCamera>(
             m_windowWidth, m_windowHeight, glm::vec3(0.0f, 0.0f, 3.0f), 0.2f, -1.0f, 10.0f);
+
+        // SETUP SHADERS
         m_shader = std::make_unique<Shader>("Playground.vs", "Lighting.fs");
         m_lightingShader = std::make_unique<Shader>("Playground.vs", "PlaygroundLight.fs");
+
+        // SETUP DEBUG DATA
         dbUI_m.setData(&dData_m);
 
-        // Create objects and assign unique IDs
+        setupObjects();
+
+        setupLights();
+
+        glfwSetScrollCallback(glfwGetCurrentContext(), ScrollCallback);
+        glfwSetWindowUserPointer(glfwGetCurrentContext(), this);
+    }
+
+    void Playground::setupLights() {
+        lights_m.clear();
+        glm::vec3 light1Position = glm::vec3(5.0f, 5.0f, 3.0f);
+        glm::vec3 light1Color = glm::vec3(1.0f, 1.0f, 1.8f);
+        float light1Intensity = 1.0f;
+        auto lightMesh1 = Square(light1Position, 1.0f);
+        Light::Controls light1Controls{light1Intensity, light1Color};
+        lights_m.push_back(Light(light1Controls, lightMesh1));
+
+        std::vector<Vertex> lightVertices;
+        for (const auto& light : lights_m) {
+            lightVertices.insert(lightVertices.end(), light.mesh.vertices.begin(), light.mesh.vertices.end());
+        }
+        m_lightVAO = std::make_unique<Mir::VAO>();
+        m_lightVBO = std::make_unique<Mir::VBO>();
+
+        m_lightVAO->bind();
+        m_lightVBO->bind();
+        m_lightVBO->setData(lightVertices);
+        VertexLayouts layout2 = {
+            {0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, position)},
+            {1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal)}};
+        m_lightVAO->setupVertexAttributes(layout2);
+        m_lightVBO->unbind();
+        m_lightVAO->unbind();
+    }
+
+    void Playground::setupObjects() {
         objects_m.clear();
         objects_m.emplace_back(Square(glm::vec3(-10.0f, -10.0f, 0.0f), 10.0f));  // Object 1
         objects_m.emplace_back(Square(glm::vec3(10.0f, 0.0f, 0.0f), 10.0f));     // Object 2
@@ -113,48 +153,35 @@ namespace Mir {
 
         objects_m[0].drawMode = DrawMode::Points;
 
-        lights_m.clear();
-        // Define parameters for the first light
-        glm::vec3 light1Position = glm::vec3(5.0f, 5.0f, 3.0f);  // Z = 1.0f for visibility
-        glm::vec3 light1Color = glm::vec3(1.0f, 1.0f, 1.8f);
-        float light1Intensity = 1.0f;
-        auto lightMesh1 = Square(light1Position, 1.0f);
-        Light::Controls light1Controls{light1Intensity, light1Color};
-        lights_m.push_back(Light(light1Controls, lightMesh1));
-
-        // Define parameters for the second light
-        // glm::vec3 light2Position = glm::vec3(-5.0f, -5.0f, 3.0f);
-        // glm::vec3 light2Color = glm::vec3(0.8f, 1.0f, 1.0f);
-        // float light2Intensity = 0.7f;
-        // auto lightMesh2 = Circle(2.0f, 16, light2Position);
-        // Light::Controls light2Controls{light2Intensity, light2Color};
-        // lights_m.push_back(Light(light2Controls, lightMesh2));
-
         std::vector<Vertex> combinedVertices;
+        std::vector<unsigned int> combinedIndices;
         size_t vertexOffset = 0;
-        for (auto& object : objects_m) {
-            vertexOffset += object.vertices.size();
+        for (const auto& object : objects_m) {
             combinedVertices.insert(combinedVertices.end(), object.vertices.begin(), object.vertices.end());
+            for (auto idx : object.indices) {
+                combinedIndices.push_back(idx + vertexOffset);
+            }
+            vertexOffset += object.vertices.size();
         }
 
-        // Setup main VBO and VAO
         m_VAO = std::make_unique<Mir::VAO>();
         m_VBO = std::make_unique<Mir::VBO>();
+        m_EBO = std::make_unique<Mir::EBO>();
 
         m_VAO->bind();
         m_VBO->bind();
-        m_VBO->setData(combinedVertices);
+        m_VBO->setData(combinedVertices, GL_DYNAMIC_DRAW);
+        m_EBO->bind();
+        m_EBO->setData(combinedIndices);
 
         VertexLayouts layout = {
             {0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, position)},
             {1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal)}};
         m_VAO->setupVertexAttributes(layout);
 
+        m_EBO->unbind();
         m_VBO->unbind();
         m_VAO->unbind();
-
-        glfwSetScrollCallback(glfwGetCurrentContext(), ScrollCallback);
-        glfwSetWindowUserPointer(glfwGetCurrentContext(), this);
     }
 
     void Playground::handleInput() {
@@ -183,7 +210,7 @@ namespace Mir {
                 dragDrop_m.obj->vertices[dragDrop_m.vertexIdx].position = newLocalPos;
 
                 m_VBO->updateVertex(
-                    dragDrop_m.objectIdx, objects_m[dragDrop_m.objectIdx].vertices[dragDrop_m.vertexIdx]);
+                    dragDrop_m.globalVboOffset, objects_m[dragDrop_m.objectIdx].vertices[dragDrop_m.vertexIdx]);
             }
         }
 
@@ -191,6 +218,7 @@ namespace Mir {
             dragDrop_m.isDraggingVertex = false;
             dragDrop_m.objectIdx = -1;
             dragDrop_m.vertexIdx = -1;
+            dragDrop_m.globalVboOffset = -1;
             dragDrop_m.obj = nullptr;
         }
 
@@ -273,28 +301,29 @@ namespace Mir {
         drawLights(minimapView, minimapProjection);
     }
 
-    void Playground::drawObject(const Object& object, size_t& offset) {
+    void Playground::drawObject(const Object& object, size_t& vertexOffset, size_t& indexOffset) {
         switch (object.drawMode) {
             case DrawMode::Triangles:
-                glDrawArrays(GL_TRIANGLES, offset, object.vertices.size());
-                offset += object.vertices.size();
+                glDrawArrays(GL_TRIANGLES, vertexOffset, object.vertices.size());
+                vertexOffset += object.vertices.size();
                 break;
             case DrawMode::TriangleFan:
-                glDrawArrays(GL_TRIANGLE_FAN, offset, object.vertices.size());
-                offset += object.vertices.size();
+                glDrawArrays(GL_TRIANGLE_FAN, vertexOffset, object.vertices.size());
+                vertexOffset += object.vertices.size();
                 break;
             case DrawMode::Lines:
-                glDrawArrays(GL_LINES, offset, object.vertices.size());
-                offset += object.vertices.size();
+                glDrawArrays(GL_LINES, vertexOffset, object.vertices.size());
+                vertexOffset += object.vertices.size();
                 break;
             case DrawMode::Points:
-                glDrawArrays(GL_POINTS, offset, object.vertices.size());
-                offset += object.vertices.size();
+                glDrawArrays(GL_POINTS, vertexOffset, object.vertices.size());
+                vertexOffset += object.vertices.size();
                 break;
 
             case DrawMode::IndexedTriangles:
-                // If using indices and EBO, call glDrawElements here
-                // glDrawElements(GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, ...);
+                glDrawElements(GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, (void*)(indexOffset * sizeof(unsigned int)));
+                vertexOffset += object.vertices.size();
+                indexOffset += object.indices.size();
                 break;
         }
     }
@@ -311,18 +340,25 @@ namespace Mir {
 
         // --- Use VAO abstraction for geometry ---
         m_VAO->bind();
+        m_EBO->bind();
         size_t vertexOffset = 0;
+        size_t indexOffset = 0;
         for (const auto& object : objects_m) {
+
+            // DRAW OBJECTS
             size_t objectStartOffset = vertexOffset;
             m_shader->setMat4("model", object.modelMatrix);
             m_shader->setVec3("objectColor", object.color);
-            drawObject(object, vertexOffset);
+            drawObject(object, vertexOffset, indexOffset);
+
             if (object.isSelected) {
                 glDisable(GL_DEPTH_TEST);
+
+                // DRAW SELECTED VERTEX
                 for (const auto& vertex : object.vertices) {
                     if (vertex.selected) {
                         size_t vertexIndex = &vertex - &object.vertices[0];
-                        size_t globalIndex = objectStartOffset + vertexIndex;  // Correct calculation
+                        size_t globalIndex = objectStartOffset + vertexIndex;  
                         glm::mat4 model = object.modelMatrix;
                         m_shader->setMat4("model", model);
                         m_shader->setVec3("objectColor", glm::vec3(1.0f, 0.0f, 0.0f));
@@ -351,18 +387,27 @@ namespace Mir {
         m_lightingShader->setMat4("view", view);
         m_lightingShader->setMat4("projection", projection);
 
+        m_lightVAO->bind();
+        size_t vertexOffset = 0;
         for (const auto& light : lights_m) {
             m_lightingShader->setMat4("model", light.mesh.modelMatrix);
             m_lightingShader->setVec3("objectColor", light.controls.color);
-            m_VAO->bind();
-            glDrawArrays(GL_TRIANGLES, 0, light.mesh.vertices.size());
+            glDrawArrays(GL_TRIANGLES, vertexOffset, light.mesh.vertices.size());
+            vertexOffset += light.mesh.vertices.size();
         }
+        m_lightVAO->unbind();
     }
 
     void Playground::checkCollision(std::vector<Object>& objects, const glm::mat4& view, const glm::mat4& projection) {
-        for (auto& object : objects) {
+        size_t globalOffset = 0;
+
+        for (size_t objIdx = 0; objIdx < objects.size(); ++objIdx) {
+            auto& object = objects[objIdx];
             bool anyVertexSelected = false;
-            for (auto& vertex : object.vertices) {
+
+            for (size_t vertexIdx = 0; vertexIdx < object.vertices.size(); ++vertexIdx, ++globalOffset) {
+                auto& vertex = object.vertices[vertexIdx];
+
                 if (Mir::isPointSelected(
                         vertex.position,
                         object.modelMatrix,
@@ -372,11 +417,11 @@ namespace Mir {
                         m_windowHeight,
                         mouse_m.screen.x,
                         mouse_m.screen.y,
-                        5.0f  // selection radius in pixels
-                        )) {
+                        5.0f)) {
                     printf(
-                        "Colliding with object (%i), vertex (x,y,z): (%0.1f, %0.1f, %0.1f)\n",
+                        "Colliding with object (%i), vertex(%zu) (x,y,z): (%0.1f, %0.1f, %0.1f)\n",
                         object.id,
+                        vertexIdx,
                         vertex.position.x,
                         vertex.position.y,
                         vertex.position.z);
@@ -384,29 +429,19 @@ namespace Mir {
                     anyVertexSelected = true;
                     if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED)) {
                         dragDrop_m.isDraggingVertex = true;
-                        dragDrop_m.vertexIdx = &vertex - &object.vertices[0];
+                        dragDrop_m.vertexIdx = vertexIdx;
+                        dragDrop_m.obj = &object;
+                        dragDrop_m.objectIdx = objIdx;
+                        dragDrop_m.globalVboOffset = globalOffset;
                     }
-
                 } else {
                     vertex.selected = false;
                 }
-
-                if (anyVertexSelected) {
-                    object.isSelected = true;
-                    if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED)) {
-                        dragDrop_m.obj = &object;
-                        dragDrop_m.objectIdx = &object - &objects[0];
-                    }
-
-                } else {
-                    object.isSelected = false;
-                }
-
-                // Handle selection: highlight, store index, etc.
             }
+
+            object.isSelected = anyVertexSelected;
         }
     }
-
     void Playground::cleanup() {
         if (m_texture1) {
             glDeleteTextures(1, &m_texture1);
