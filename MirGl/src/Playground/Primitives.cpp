@@ -3,12 +3,13 @@ constexpr double PI = 3.141592653589793;
 
 namespace Mir {
 
-    unsigned int Object::nextId = 1;
+    unsigned int Object::nextId = 0;
 
     Circle::Circle(float radius, int segments, glm::vec3 Color) : Object(createCircleVertices(radius, segments)) {
         setPosition(glm::vec3(0.0f));
         setColor(Color);
         drawMode = DrawMode::TriangleFan;
+        
     }
 
     std::vector<Vertex> Circle::createCircleVertices(float radius, int segments) {

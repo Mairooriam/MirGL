@@ -152,6 +152,7 @@ namespace Mir {
         objects_m.emplace_back(Circle(5.0, 8));
 
         objects_m[0].drawMode = DrawMode::Points;
+        objects_m[0].indices.clear();
 
         std::vector<Vertex> combinedVertices;
         std::vector<unsigned int> combinedIndices;
@@ -321,7 +322,8 @@ namespace Mir {
                 break;
 
             case DrawMode::IndexedTriangles:
-                glDrawElements(GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, (void*)(indexOffset * sizeof(unsigned int)));
+                glDrawElements(
+                    GL_TRIANGLES, object.indices.size(), GL_UNSIGNED_INT, (void*)(indexOffset * sizeof(unsigned int)));
                 vertexOffset += object.vertices.size();
                 indexOffset += object.indices.size();
                 break;
@@ -344,9 +346,10 @@ namespace Mir {
         size_t vertexOffset = 0;
         size_t indexOffset = 0;
         for (const auto& object : objects_m) {
+            // CAPTURE OFFSET BEFORE DRAWING
+            size_t objectStartOffset = vertexOffset;
 
             // DRAW OBJECTS
-            size_t objectStartOffset = vertexOffset;
             m_shader->setMat4("model", object.modelMatrix);
             m_shader->setVec3("objectColor", object.color);
             drawObject(object, vertexOffset, indexOffset);
@@ -358,7 +361,7 @@ namespace Mir {
                 for (const auto& vertex : object.vertices) {
                     if (vertex.selected) {
                         size_t vertexIndex = &vertex - &object.vertices[0];
-                        size_t globalIndex = objectStartOffset + vertexIndex;  
+                        size_t globalIndex = objectStartOffset + vertexIndex;
                         glm::mat4 model = object.modelMatrix;
                         m_shader->setMat4("model", model);
                         m_shader->setVec3("objectColor", glm::vec3(1.0f, 0.0f, 0.0f));
@@ -368,18 +371,6 @@ namespace Mir {
                 glEnable(GL_DEPTH_TEST);
             }
         }
-
-        // // --- Use VAO abstraction for lighting ---
-        // glm::mat4 model = glm::mat4(1.0f);
-        // model = glm::translate(model, m_lightPosition);
-        // model = glm::scale(model, glm::vec3(0.1f));
-        // m_lightingShader->use();
-        // m_lightingShader->setMat4("view", view);
-        // m_lightingShader->setMat4("projection", projection);
-        // m_lightingShader->setMat4("model", model);
-
-        // m_lightVAO->bind();
-        // glDrawArrays(GL_TRIANGLES, 0, 6);
     }
 
     void Playground::drawLights(const glm::mat4& view, const glm::mat4& projection) {
@@ -405,7 +396,8 @@ namespace Mir {
             auto& object = objects[objIdx];
             bool anyVertexSelected = false;
 
-            for (size_t vertexIdx = 0; vertexIdx < object.vertices.size(); ++vertexIdx, ++globalOffset) {
+            size_t objectStartOffset = globalOffset;
+            for (size_t vertexIdx = 0; vertexIdx < object.vertices.size(); ++vertexIdx) {
                 auto& vertex = object.vertices[vertexIdx];
 
                 if (Mir::isPointSelected(
@@ -437,11 +429,13 @@ namespace Mir {
                 } else {
                     vertex.selected = false;
                 }
+                ++globalOffset;
             }
 
             object.isSelected = anyVertexSelected;
         }
     }
+
     void Playground::cleanup() {
         if (m_texture1) {
             glDeleteTextures(1, &m_texture1);
