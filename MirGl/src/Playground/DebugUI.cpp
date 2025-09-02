@@ -147,7 +147,14 @@ namespace Mir {
         }
     }
     void DebugUI::object(Object& object) {
+        if (object.isSelected) {
+            ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(255.0f, 0.5f, 255.0f, 1.0f));
+        } else {
+            ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+        }
+
         if (ImGui::TreeNode((void*)(intptr_t)object.id, "Object ID: %u", object.id)) {
+            ImGui::PopStyleColor();
             ImGui::ColorEdit3("Color", (float*)&object.color);
             ImGui::DragFloat3("Position", glm::value_ptr(object.modelMatrix[3]), 0.1f);
             ImGui::Text("Draw Mode: %s", magic_enum::enum_name(object.drawMode).data());
@@ -158,11 +165,21 @@ namespace Mir {
             ImGui::Text("Dragged Object Vertices:");
             int vIdx = 0;
             for (const auto& v : object.vertices) {
+                if (v.selected) {
+                    ImGui::PushStyleColor(ImGuiCol_Text, ImVec4(255.0f, 0.5f, 255.0f, 1.0f));
+                } else {
+                    ImGui::PushStyleColor(ImGuiCol_Header, ImVec4(0.2f, 0.2f, 0.2f, 1.0f));
+                }
+
                 ImGui::Text("Vertex %d: (%.3f, %.3f, %.3f)", vIdx++, v.position.x, v.position.y, v.position.z);
+                ImGui::PopStyleColor();
             }
             ImGui::TreePop();
+        } else {
+            ImGui::PopStyleColor();  // Pop outside if tree node is closed
         }
     }
+
     void DebugUI::lights() {
         if (!data->lights) return;
         int idx = 0;
