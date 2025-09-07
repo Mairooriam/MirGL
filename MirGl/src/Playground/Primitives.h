@@ -6,7 +6,7 @@ namespace Mir {
     struct Vertex {
         glm::vec3 position;  // Position (x, y, z)
         glm::vec3 normal;
-        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
+        glm::vec3 color = glm::vec3(0.5f, 0.5f, 0.5f);
         bool selected = false;
         Vertex() = default;
         Vertex(float x, float y) : position(glm::vec3(x, y, 0)), normal(glm::vec3()) {}

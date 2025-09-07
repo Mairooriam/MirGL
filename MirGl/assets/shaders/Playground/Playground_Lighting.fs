@@ -1,6 +1,7 @@
 #version 330 core
 out vec4 FragColor;
-  
+
+uniform bool isPointDrawing; 
 uniform vec3 objectColor;
 uniform vec3 lightColor;
 uniform vec3 lightPos;
@@ -10,11 +11,14 @@ in vec3 Normal;
 in vec3 vertexColor;
 void main()
 {
-    if (gl_PointCoord.x != 0.0 || gl_PointCoord.y != 0.0) {
+
+    if (isPointDrawing) {
         float dist = length(gl_PointCoord - vec2(0.5));
         if (dist > 0.5)
             discard;
     }
+
+
 
 
     float specularStrength = 0.5;
