@@ -6,6 +6,7 @@ namespace Mir {
     struct Vertex {
         glm::vec3 position;  // Position (x, y, z)
         glm::vec3 normal;
+        glm::vec3 color = glm::vec3(1.0f, 1.0f, 1.0f);
         bool selected = false;
         Vertex() = default;
         Vertex(float x, float y) : position(glm::vec3(x, y, 0)), normal(glm::vec3()) {}
@@ -23,16 +24,19 @@ namespace Mir {
 
     class Object {
       public:
-        unsigned int id;
+        int id;
         glm::vec3 color;
         glm::mat4 modelMatrix;
         std::vector<Vertex> vertices;
         std::vector<unsigned int> indices;
+        std::vector<bool> selectedFaces;
         DrawMode drawMode = DrawMode::Triangles;
         bool isSelected = false;
 
         Object(const std::vector<Vertex>& verts)
-            : id(nextId++), color(glm::vec3(1.0f)), modelMatrix(glm::mat4(1.0f)), vertices(verts), isSelected(false) {}
+            : id(nextId++), color(glm::vec3(1.0f)), modelMatrix(glm::mat4(1.0f)), vertices(verts), isSelected(false) {
+               updateSelectedFaces();
+            }
 
         void setPosition(const glm::vec3& position) { modelMatrix = glm::translate(glm::mat4(1.0f), position); }
 
@@ -48,8 +52,19 @@ namespace Mir {
 
         void setDrawMode(DrawMode mode) { drawMode = mode; }
 
+
+        void updateSelectedFaces() {
+            if (drawMode == DrawMode::IndexedTriangles) {
+                selectedFaces.resize(indices.size() / 3, false);
+            } else if (drawMode == DrawMode::TriangleFan) {
+                selectedFaces.resize(vertices.size() - 2, false);  
+            } else {
+                selectedFaces.resize(vertices.size() / 3, false); 
+            }
+        }
+
       private:
-        static unsigned int nextId;
+        static int nextId;
     };
 
     enum class OriginLocation { BOTTOM_LEFT, BOTTOM_RIGHT, TOP_LEFT, TOP_RIGHT, CENTER };

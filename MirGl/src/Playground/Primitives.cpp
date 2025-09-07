@@ -3,7 +3,7 @@ constexpr double PI = 3.141592653589793;
 
 namespace Mir {
 
-    unsigned int Object::nextId = 0;
+    int Object::nextId = 1;
 
     Circle::Circle(float radius, int segments, glm::vec3 Color) : Object(createCircleVertices(radius, segments)) {
         setPosition(glm::vec3(0.0f));
@@ -21,6 +21,7 @@ namespace Mir {
         for (int i = 0; i < segments; i++) {
             float x = glm::cos(theta * i) * radius;
             float y = glm::sin(theta * i) * radius;
+            
             res.emplace_back(Vertex(glm::vec3(x, y, 0.0f), glm::vec3(0.0f, 0.0f, 1.0f)));
         }
 

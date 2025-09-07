@@ -43,15 +43,21 @@ namespace Mir {
         void render() override;
         void drawObject(const Object& object, size_t& offset, size_t& indexOffset);
         void drawObjects(const glm::mat4& view, const glm::mat4& projection);
+        void drawObjectsForPicking(const glm::mat4& view, const glm::mat4& projection);
         void drawLights(const glm::mat4& view, const glm::mat4& projection);
         void checkCollision(std::vector<Object>& objects, const glm::mat4& view, const glm::mat4& projection);
         void cleanup() override;
         void updateTime();
         const char* getName() const override { return "Playground"; }
         void renderUI() override;
-
+        
         glm::vec3 ScreenToWorld(float x_screen, float y_screen);
         bool useOrthoCamera = true;
+        bool useVertexColorSelection = true;
+
+        //PICKING
+        int getPickedObjectID(float mouseX, float mouseY);
+
 
       private:
         DebugUI dbUI_m;
@@ -81,6 +87,7 @@ namespace Mir {
         // SHADER
         std::unique_ptr<Shader> m_shader;
         std::unique_ptr<Shader> m_lightingShader;
+        std::unique_ptr<Shader> m_pickingShader;
 
         // MOUSE
         Mouse mouse_m;

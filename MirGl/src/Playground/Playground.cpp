@@ -103,8 +103,9 @@ namespace Mir {
             m_windowWidth, m_windowHeight, glm::vec3(0.0f, 0.0f, 3.0f), 0.2f, -1.0f, 10.0f);
 
         // SETUP SHADERS
-        m_shader = std::make_unique<Shader>("Playground.vs", "Lighting.fs");
-        m_lightingShader = std::make_unique<Shader>("Playground.vs", "PlaygroundLight.fs");
+        m_shader = std::make_unique<Shader>("Playground.vs", "Playground_Lighting.fs");
+        m_lightingShader = std::make_unique<Shader>("Playground.vs", "Playground_Light.fs");
+        m_pickingShader = std::make_unique<Shader>("Playground.vs", "Playground_Picking.fs");
 
         // SETUP DEBUG DATA
         dbUI_m.setData(&dData_m);
@@ -152,6 +153,7 @@ namespace Mir {
         objects_m.emplace_back(Circle(5.0, 8));
 
         objects_m[0].drawMode = DrawMode::Points;
+
         objects_m[0].indices.clear();
 
         std::vector<Vertex> combinedVertices;
@@ -177,11 +179,13 @@ namespace Mir {
 
         VertexLayouts layout = {
             {0, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, position)},
-            {1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal)}};
+            {1, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, normal)},
+            {2, 3, GL_FLOAT, GL_FALSE, sizeof(Vertex), offsetof(Vertex, color)}};
         m_VAO->setupVertexAttributes(layout);
 
         m_EBO->unbind();
         m_VBO->unbind();
+
         m_VAO->unbind();
     }
 
@@ -283,7 +287,18 @@ namespace Mir {
         }
 
         checkCollision(objects_m, view, projection);
-        drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
+        // drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
+        drawObjectsForPicking(view, projection);
+
+        if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED)) {
+            int pickedID = getPickedObjectID(mouse_m.screen.x, mouse_m.screen.y);
+
+            // Update object selection based on picked ID
+            for (auto& obj : objects_m) {
+                obj.isSelected = (obj.id == pickedID);
+            }
+        }
+
         drawLights(view, projection);
         // --- Minimap viewport setup ---
         int minimapWidth = m_windowWidth / 4;
@@ -372,7 +387,29 @@ namespace Mir {
             }
         }
     }
+    void Playground::drawObjectsForPicking(const glm::mat4& view, const glm::mat4& projection) {
+        m_pickingShader->use();
+        m_pickingShader->setMat4("view", view);
+        m_pickingShader->setMat4("projection", projection);
 
+        // --- Use VAO abstraction for geometry ---
+        m_VAO->bind();
+        m_EBO->bind();
+        size_t vertexOffset = 0;
+        size_t indexOffset = 0;
+
+        for (const auto& object : objects_m) {
+            // Set the element ID for this object
+            m_pickingShader->setInt("elementID", object.id);
+            m_pickingShader->setMat4("model", object.modelMatrix);
+
+            // Draw the object (same geometry, different shader)
+            drawObject(object, vertexOffset, indexOffset);
+        }
+
+        m_VAO->unbind();
+        m_EBO->unbind();
+    }
     void Playground::drawLights(const glm::mat4& view, const glm::mat4& projection) {
         m_lightingShader->use();
         m_lightingShader->setMat4("view", view);
@@ -396,7 +433,6 @@ namespace Mir {
             auto& object = objects[objIdx];
             bool anyVertexSelected = false;
 
-            size_t objectStartOffset = globalOffset;
             for (size_t vertexIdx = 0; vertexIdx < object.vertices.size(); ++vertexIdx) {
                 auto& vertex = object.vertices[vertexIdx];
 
@@ -425,9 +461,11 @@ namespace Mir {
                         dragDrop_m.obj = &object;
                         dragDrop_m.objectIdx = objIdx;
                         dragDrop_m.globalVboOffset = globalOffset;
+                        vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);
                     }
                 } else {
                     vertex.selected = false;
+                    vertex.color = glm::vec3(1.0f, 1.0f, 1.0f);
                 }
                 ++globalOffset;
             }
@@ -483,4 +521,31 @@ namespace Mir {
         dbUI_m.render();
     }
 
+
+    int Playground::getPickedObjectID(float mouseX, float mouseY) {
+        // Read the pixel at mouse position
+        unsigned char pixel[3];
+        glReadPixels(
+            static_cast<int>(mouseX),
+            m_windowHeight - static_cast<int>(mouseY),  // Flip Y coordinate
+            1,
+            1,
+            GL_RGB,
+            GL_UNSIGNED_BYTE,
+            pixel);
+
+        // Decode the ID from RGB
+        int pickedID = pixel[0] + (pixel[1] << 8) + (pixel[2] << 16);
+
+        printf(
+            "Mouse at (%.0f, %.0f) - Pixel RGB: (%d, %d, %d) - Decoded ID: %d\n",
+            mouseX,
+            mouseY,
+            pixel[0],
+            pixel[1],
+            pixel[2],
+            pickedID);
+
+        return pickedID;
+    }
 }  // namespace Mir
