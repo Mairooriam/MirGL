@@ -131,8 +131,8 @@ void Window::render() {
             m_exampleManager.currentExample->render();
         }
         
-        m_imguiLayer->begin();
         // for now here. lazy
+        m_imguiLayer->begin();
         int windowX, windowY;
         glfwGetWindowPos(m_window, &windowX, &windowY);
 

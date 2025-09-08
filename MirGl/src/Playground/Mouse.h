@@ -25,27 +25,23 @@ namespace Mir {
     }
 
     struct Mouse {
+        glm::dvec2 screen{0.0, 0.0};
+        glm::dvec2 viewport{0.0, 0.0};
+        glm::dvec2 world{0.0, 0.0};
 
-        // Screen coordinates
-        struct Screen {
-            double x = 0.0;
-            double y = 0.0;
-        } screen;
+        glm::dvec2 screenLast{0.0, 0.0};
+        glm::dvec2 viewportLast{0.0, 0.0};
+        glm::dvec2 worldLast{0.0, 0.0};
 
-        // Viewport coordinates
-        struct Viewport {
-            double x = 0.0;
-            double y = 0.0;
-        } viewport;
-
-        // World coordinates
-        struct World {
-            double x = 0.0;
-            double y = 0.0;
-        } world;
-
-        // Current mouse state (bitmask of MouseState)
         MouseState currentState = MouseState::NONE;
+
+        void setCurrentLast() {
+            screenLast = screen;
+            viewportLast = viewport;
+            worldLast = world;
+        }
+
+        glm::dvec2 getOffset() const { return screen - screenLast; }
 
         // Update the mouse state
         void updateState(bool leftPressed, bool rightPressed, bool middlePressed) {

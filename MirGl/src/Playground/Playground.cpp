@@ -197,13 +197,13 @@ namespace Mir {
 
             mouse_m.updateState(leftPressed, rightPressed, middlePressed);
 
+            mouse_m.setCurrentLast();
             glfwGetCursorPos(glfwGetCurrentContext(), &mouse_m.screen.x, &mouse_m.screen.y);
             glm::vec3 worldPos = ScreenToWorld(mouse_m.screen.x, mouse_m.screen.y);
             mouse_m.world.x = worldPos.x;
             mouse_m.world.y = worldPos.y;
 
         } else {
-            // Use manually set mouse position
             mouse_m.screen.x = m_manualMousePos.x;
             mouse_m.screen.y = m_manualMousePos.y;
         }
@@ -217,6 +217,37 @@ namespace Mir {
                 m_VBO->updateVertex(
                     dragDrop_m.globalVboOffset, objects_m[dragDrop_m.objectIdx].vertices[dragDrop_m.vertexIdx]);
             }
+        }
+
+        if (mouse_m.isStateActive(MouseState::MOUSE_2_PRESSED) && m_state == AppState::NONE) {
+            glfwSetInputMode(glfwGetCurrentContext(), GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+            m_state = AppState::MOUSE_LOCKED;
+        }
+
+        if (m_state == AppState::MOUSE_LOCKED) {
+        }
+
+        if (m_state == AppState::MOUSE_LOCKED) {
+            if (glfwGetKey(glfwGetCurrentContext(), GLFW_KEY_F) == GLFW_PRESS) {
+                glfwSetInputMode(glfwGetCurrentContext(), GLFW_CURSOR, GLFW_CURSOR_NORMAL);
+                m_state = AppState::NONE;
+            }
+
+            float sensitivity = 0.1f;  
+            glm::dvec2 offsets = mouse_m.getOffset();
+            offsets.y = -offsets.y;
+            offsets.x *= sensitivity;
+            offsets.y *= sensitivity;
+
+            // Update camera yaw and pitch
+            m_Camera->ProcessMouseMovement(static_cast<float>(offsets.x), static_cast<float>(offsets.y));
+
+            glfwSetCursorPos(glfwGetCurrentContext(), m_windowWidth / 2.0, m_windowHeight / 2.0);
+            glfwGetCursorPos(glfwGetCurrentContext(), &mouse_m.screen.x, &mouse_m.screen.y);
+            glm::vec3 worldPos = ScreenToWorld(mouse_m.screen.x, mouse_m.screen.y);
+            mouse_m.world.x = worldPos.x;
+            mouse_m.world.y = worldPos.y;
+            mouse_m.setCurrentLast();
         }
 
         if (mouse_m.isStateActive(MouseState::MOUSE_1_RELEASED)) {
@@ -520,7 +551,6 @@ namespace Mir {
     void Playground::renderUI() {
         dbUI_m.render();
     }
-
 
     int Playground::getPickedObjectID(float mouseX, float mouseY) {
         // Read the pixel at mouse position

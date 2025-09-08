@@ -16,10 +16,11 @@
 #include "VBO.h"
 #include "EBO.h"
 
+
+#include "State.h"
 namespace Mir {
 
-    enum class ActiveWindow { MAIN_VIEWPORT, SECOND_VIEWPORT };
-    enum class DragAndDropState{ NONE, STARTED, ENDED };
+
     class Playground : public IExample {
       public:
 
@@ -63,7 +64,7 @@ namespace Mir {
         DebugUI dbUI_m;
 
         ActiveWindow m_activeWindow = ActiveWindow::SECOND_VIEWPORT;
-
+        AppState m_state = AppState::NONE;
         std::vector<Object> objects_m;
         std::vector<Light> lights_m;
 
