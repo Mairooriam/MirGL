@@ -318,8 +318,8 @@ namespace Mir {
         }
 
         checkCollision(objects_m, view, projection);
-        // drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
-        drawObjectsForPicking(view, projection);
+        drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
+        // drawObjectsForPicking(view, projection);
 
         if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED)) {
             int pickedID = getPickedObjectID(mouse_m.screen.x, mouse_m.screen.y);
@@ -343,7 +343,7 @@ namespace Mir {
         glm::mat4 minimapView = m_Camera->GetViewMatrix();
         glm::mat4 minimapProjection = glm::perspective(
             glm::radians(m_Camera->GetZoom()), static_cast<float>(minimapWidth) / minimapHeight, 0.1f, 500.0f);
-
+        glClear(GL_DEPTH_BUFFER_BIT);
         drawObjects(minimapView, minimapProjection);
         drawLights(minimapView, minimapProjection);
     }
@@ -363,8 +363,10 @@ namespace Mir {
                 vertexOffset += object.vertices.size();
                 break;
             case DrawMode::Points:
+                m_shader->setBool("isPointDrawing", true);
                 glDrawArrays(GL_POINTS, vertexOffset, object.vertices.size());
                 vertexOffset += object.vertices.size();
+                m_shader->setBool("isPointDrawing", false);
                 break;
 
             case DrawMode::IndexedTriangles:
@@ -389,6 +391,7 @@ namespace Mir {
         // --- Use VAO abstraction for geometry ---
         m_VAO->bind();
         m_EBO->bind();
+
         size_t vertexOffset = 0;
         size_t indexOffset = 0;
         for (const auto& object : objects_m) {
@@ -411,7 +414,9 @@ namespace Mir {
                         glm::mat4 model = object.modelMatrix;
                         m_shader->setMat4("model", model);
                         m_shader->setVec3("objectColor", glm::vec3(1.0f, 0.0f, 0.0f));
+                        m_shader->setBool("isPointDrawing", true);
                         glDrawArrays(GL_POINTS, globalIndex, 1);
+                        m_shader->setBool("isPointDrawing", false);
                     }
                 }
                 glEnable(GL_DEPTH_TEST);
