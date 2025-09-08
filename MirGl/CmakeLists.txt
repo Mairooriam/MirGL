@@ -34,6 +34,7 @@ set(SOURCES
     src/Playground/DebugUI.cpp
     src/Playground/VBO.cpp
     src/Playground/VAO.cpp
+    src/Playground/Grid.cpp
 
 
     src/Playground2/Playground2.cpp

@@ -114,6 +114,7 @@ namespace Mir {
 
         setupLights();
 
+        m_grid.init();
         glfwSetScrollCallback(glfwGetCurrentContext(), ScrollCallback);
         glfwSetWindowUserPointer(glfwGetCurrentContext(), this);
     }
@@ -189,6 +190,8 @@ namespace Mir {
         m_VAO->unbind();
     }
 
+    void Playground::setupGrid() {}
+
     void Playground::handleInput() {
         if (m_updateMousePos) {
             bool leftPressed = glfwGetMouseButton(glfwGetCurrentContext(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
@@ -233,7 +236,7 @@ namespace Mir {
                 m_state = AppState::NONE;
             }
 
-            float sensitivity = 0.1f;  
+            float sensitivity = 0.1f;
             glm::dvec2 offsets = mouse_m.getOffset();
             offsets.y = -offsets.y;
             offsets.x *= sensitivity;
@@ -337,6 +340,7 @@ namespace Mir {
         int minimapX = m_windowWidth - minimapWidth - 10;  // 10px from right
         int minimapY = 10;                                 // 10px from bottom
 
+        
         glViewport(minimapX, minimapY, minimapWidth, minimapHeight);
 
         // Set up perspective camera for minimap
@@ -346,6 +350,7 @@ namespace Mir {
         glClear(GL_DEPTH_BUFFER_BIT);
         drawObjects(minimapView, minimapProjection);
         drawLights(minimapView, minimapProjection);
+        m_grid.draw(view, projection);
     }
 
     void Playground::drawObject(const Object& object, size_t& vertexOffset, size_t& indexOffset) {

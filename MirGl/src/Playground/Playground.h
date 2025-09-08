@@ -18,6 +18,8 @@
 
 
 #include "State.h"
+
+#include "Grid.h"
 namespace Mir {
 
 
@@ -41,6 +43,8 @@ namespace Mir {
         void setup() override;
         void setupLights();
         void setupObjects();
+        void setupGrid();
+        void drawGrid();
         void render() override;
         void drawObject(const Object& object, size_t& offset, size_t& indexOffset);
         void drawObjects(const glm::mat4& view, const glm::mat4& projection);
@@ -59,7 +63,7 @@ namespace Mir {
         //PICKING
         int getPickedObjectID(float mouseX, float mouseY);
 
-
+        Grid m_grid;
       private:
         DebugUI dbUI_m;
 

@@ -11,6 +11,7 @@ namespace Mir {
         Vertex() = default;
         Vertex(float x, float y) : position(glm::vec3(x, y, 0)), normal(glm::vec3()) {}
         Vertex(const glm::vec3& pos, const glm::vec3& norm) : position(pos), normal(norm) {}
+        Vertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec3& col) : position(pos), normal(norm), color(col) {}
     };
 
     enum class DrawMode {

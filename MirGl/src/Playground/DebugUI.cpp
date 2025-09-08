@@ -50,6 +50,7 @@ namespace Mir {
 
         if (ImGui::TreeNode("Objects")) {
             objects();
+
             ImGui::TreePop();
         }
 
