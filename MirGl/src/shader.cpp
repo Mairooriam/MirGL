@@ -39,13 +39,13 @@ namespace Mir {
             return;
         }
 
-        auto vertexShader = compileShader(GL_VERTEX_SHADER, vShaderResult->c_str());
+        auto vertexShader = compileShader(GL_VERTEX_SHADER, vShaderResult->c_str(), vertexPath);
         if (!vertexShader) {
             std::cerr << vertexShader.error() << std::endl;
             return;
         }
 
-        auto fragmentShader = compileShader(GL_FRAGMENT_SHADER, fShaderResult->c_str());
+        auto fragmentShader = compileShader(GL_FRAGMENT_SHADER, fShaderResult->c_str(), fragmentPath);
         if (!fragmentShader) {
             std::cerr << fragmentShader.error() << std::endl;
             glDeleteShader(*vertexShader);
@@ -63,7 +63,7 @@ namespace Mir {
         glGetProgramiv(m_id, GL_LINK_STATUS, &success);
         if (!success) {
             glGetProgramInfoLog(m_id, 512, NULL, infoLog);
-            std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED {}" <<  infoLog << "\n";
+            std::cerr << "ERROR::SHADER::PROGRAM::LINKING_FAILED {}" << infoLog << "\n";
         }
 
         glDeleteShader(vertexShader.value());
@@ -71,8 +71,7 @@ namespace Mir {
     }
 
     Shader::~Shader() {
-        if (m_id > 0)
-            glDeleteProgram(m_id);
+        if (m_id > 0) glDeleteProgram(m_id);
     }
 
     void Shader::use() {
@@ -121,7 +120,7 @@ namespace Mir {
         }
     }
 
-    GLint Shader::getUniformLocation(const char* name) const{
+    GLint Shader::getUniformLocation(const char* name) const {
         GLint location = glGetUniformLocation(m_id, name);
         if (location == -1) {
             std::cerr << "WARNING: Uniform '" << name << "' does not exist in shader " << m_id << std::endl;
@@ -129,11 +128,8 @@ namespace Mir {
         return location;
     }
 
-
-    
-
-    auto Shader::compileShader(GLenum type, const char* source)
-        -> std::expected<unsigned int, std::string> {
+    auto Shader::compileShader(GLenum type, const char* source, const fs::path& filePath)  -> std::expected<unsigned int, std::string> {
+        std::string typeStr = (type == GL_VERTEX_SHADER) ? "Vertex" : "Fragment";
         unsigned int shader = glCreateShader(type);
         glShaderSource(shader, 1, &source, NULL);
         glCompileShader(shader);
@@ -145,15 +141,17 @@ namespace Mir {
             char infoLog[512];
             glGetShaderInfoLog(shader, 512, NULL, infoLog);
 
-            std::string typeStr = (type == GL_VERTEX_SHADER)     ? "Vertex"
-                                  : (type == GL_FRAGMENT_SHADER) ? "Fragment"
-                                                                 : "Unknown";
+            std::cerr << "ERROR: " << typeStr << " shader compilation failed for file '" << filePath
+                      << "':" << std::endl;
+            std::cerr << infoLog << std::endl;
 
             glDeleteShader(shader);
             return std::unexpected(
-                std::format("{} shader compilation failed: {}", typeStr, infoLog));
+                std::format("{} shader '{}' compilation failed: {}", typeStr, filePath.string(), infoLog));
         }
 
+        std::cout << typeStr << " shader compiled successfully (ID: " << shader << ")" << " - [" << filePath << "]"
+                  << std::endl;
         return shader;
     }
 }  // namespace Mir

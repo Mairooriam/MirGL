@@ -71,7 +71,7 @@ namespace Mir
         ImGui::ShowDemoWindow();
 
         if (ImGui::Begin("Renderer Settings")) {
-            ImGui::ColorEdit3("Clear Color", state.clearColor);
+            ImGui::ColorEdit4("Clear Color", state.clearColor);
             
         for (size_t i = 0; i < state.exampleManager->count(); i++) {
             const char* name = state.exampleManager->examples[i]->getName();

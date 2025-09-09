@@ -4,7 +4,6 @@
 #include <string>
 #include <vector>
 
-
 namespace Mir {
     struct DragDrop;
 
@@ -12,10 +11,11 @@ namespace Mir {
     enum class ActiveWindow;
     class Object;
     class Light;
+    class Grid;
     struct DebugData {
         // Camera Info
 
-        bool MainWindow = true;       
+        bool MainWindow = true;
         struct CameraInfo {
             glm::vec3 position;
             glm::vec3 front;
@@ -29,8 +29,7 @@ namespace Mir {
         CameraInfo perspectiveCamera;
         CameraInfo orthoCamera;
 
-
-        Mouse* mouse = nullptr; 
+        Mouse* mouse = nullptr;
 
         // Timing Info
         float deltaTime;
@@ -47,18 +46,18 @@ namespace Mir {
         glm::mat4 inverseView;
         glm::vec3 worldPosition;
 
-        //General
+        // General
         bool showWireframe = false;
 
-
-        //Objects
+        // Objects
         std::vector<Object>* objects;
-    
 
-        //Lights control
+        // Lights control
         std::vector<Light>* lights = nullptr;
 
         //
         DragDrop* dragDrop = nullptr;
+
+        Grid* grid = nullptr;
     };
-}
+}  // namespace Mir

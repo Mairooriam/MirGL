@@ -84,6 +84,8 @@ namespace Mir {
 
         // DRAG & DROP
         dData_m.dragDrop = &dragDrop_m;
+
+        dData_m.grid = &m_grid;
     }
 
     Playground::~Playground() {
@@ -190,8 +192,6 @@ namespace Mir {
         m_VAO->unbind();
     }
 
-    void Playground::setupGrid() {}
-
     void Playground::handleInput() {
         if (m_updateMousePos) {
             bool leftPressed = glfwGetMouseButton(glfwGetCurrentContext(), GLFW_MOUSE_BUTTON_LEFT) == GLFW_PRESS;
@@ -293,13 +293,11 @@ namespace Mir {
 
     void Playground::render() {
         glEnable(GL_BLEND);
-        glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         updateTime();
         handleInput();
         updateDebugData();
-
         glEnable(GL_DEPTH_TEST);
         glClear(GL_COLOR_BUFFER_BIT | GL_DEPTH_BUFFER_BIT);
 
@@ -333,14 +331,16 @@ namespace Mir {
             }
         }
 
-        drawLights(view, projection);
+        // drawLights(view, projection);
+        glDisable(GL_DEPTH_TEST);
+        m_grid.draw(view, projection);
+        glEnable(GL_DEPTH_TEST);
         // --- Minimap viewport setup ---
         int minimapWidth = m_windowWidth / 4;
         int minimapHeight = m_windowHeight / 4;
         int minimapX = m_windowWidth - minimapWidth - 10;  // 10px from right
         int minimapY = 10;                                 // 10px from bottom
 
-        
         glViewport(minimapX, minimapY, minimapWidth, minimapHeight);
 
         // Set up perspective camera for minimap

@@ -21,6 +21,7 @@ namespace Mir {
         void object(Object& object);
         void lights();
         void renderDragDropInfo();
+        void grid();
 
 
     };

@@ -14,9 +14,11 @@ namespace Mir
     class Shader
     {
     private:
-        auto compileShader(GLenum type, const char* source) -> std::expected<unsigned int, std::string>;
+        auto compileShader(GLenum type, const char* source, const fs::path& filePath)  -> std::expected<unsigned int, std::string>;
     public:
         unsigned int m_id; 
+
+
         Shader(fs::path vertexPath, fs::path fragmentPath);
         ~Shader();
         void use();

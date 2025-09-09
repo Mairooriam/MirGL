@@ -7,13 +7,12 @@ namespace Mir {
     Grid::Grid() {}
 
     void Grid::init() {
-        float gridSize = 50.0f;
-        std::vector<Vertex> gridVertices = {
-            // position                          normal          color (unused for grid)
-            {{-gridSize, -gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}},
-            {{gridSize, -gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}},
-            {{gridSize, gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}},
-            {{-gridSize, gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}}};
+        float gridSize = 150.0f;
+        std::vector<Vertex> gridVertices = {// position                          normal          color (unused for grid)
+                                            {{-gridSize, -gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}},
+                                            {{gridSize, -gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}},
+                                            {{gridSize, gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}},
+                                            {{-gridSize, gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}}};
 
         std::vector<unsigned int> gridIndices = {0, 1, 2, 2, 3, 0};
 
@@ -35,6 +34,7 @@ namespace Mir {
 
         // Create grid shader
         m_Shader = std::make_unique<Shader>("Playground_Grid.vs", "Playground_Grid.fs");
+        initalized = true;
     }
 
     void Grid::draw(const glm::mat4& view, const glm::mat4& projection) {
@@ -46,7 +46,14 @@ namespace Mir {
             m_Shader->setMat4("view", view);
             m_Shader->setMat4("projection", projection);
             m_Shader->setMat4("model", glm::mat4(1.0f));
-            m_Shader->setFloat("gridSize", 1.0f);
+
+            // Grid appearance uniforms
+            m_Shader->setFloat("gridSize", config.size);
+            m_Shader->setVec3("gridColor", glm::vec3(config.color));
+            m_Shader->setFloat("lineWidth", config.lineWidth);
+            m_Shader->setFloat("fadeDistance", config.fadeDistance);
+            m_Shader->setFloat("fadeStrength", config.fadeStrength);
+            m_Shader->setBool("enableFading", config.enableFading);
 
             // Draw grid quad
             m_VAO->bind();

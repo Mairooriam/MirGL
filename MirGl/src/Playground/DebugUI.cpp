@@ -8,7 +8,7 @@
 #include "Mouse.h"
 #include "Primitives.h"
 #include "imgui.h"
-
+#include "Grid.h"
 namespace Mir {
 
     DebugUI::DebugUI(DebugData* debugData) : data(debugData) {}
@@ -62,6 +62,12 @@ namespace Mir {
         if (ImGui::TreeNode("Drag & Drop Info")) {
             renderDragDropInfo();
             ImGui::TreePop();
+        }
+        if (data->grid) {
+            if (ImGui::TreeNode("Grid Config")) {
+                grid();
+                ImGui::TreePop();
+            }
         }
 
         ImGui::End();
@@ -215,5 +221,22 @@ namespace Mir {
                 ImGui::Text("Vertex %d: (%.3f, %.3f, %.3f)", vIdx++, v.position.x, v.position.y, v.position.z);
             }
         }
+    }
+    void DebugUI::grid() {
+        if (!data->grid) return;
+        auto& config = data->grid->config;
+        if (ImGui::DragFloat("Size", &config.size, 0.1f, 1.0f, 100.0f)) {
+        }
+        if (ImGui::ColorEdit3("Color", glm::value_ptr(config.color))) {
+        }
+        if (ImGui::DragFloat("Width", &config.lineWidth, 0.01f, 0.1f, 10.0f)) {
+        }
+        if (ImGui::DragFloat("Fade Distance", &config.fadeDistance, 0.01f, 0.0f, 10.0f)) {
+        }
+        if (ImGui::DragFloat("Fade Strength", &config.fadeStrength, 0.01f, 0.0f, 10.0f)) {
+        }
+        ImGui::Checkbox("Enable Fading", &config.enableFading);
+
+
     }
 }  // namespace Mir
