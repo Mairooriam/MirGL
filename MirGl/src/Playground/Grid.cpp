@@ -7,7 +7,7 @@ namespace Mir {
     Grid::Grid() {}
 
     void Grid::init() {
-        float gridSize = 150.0f;
+        float gridSize = 500.0f;
         std::vector<Vertex> gridVertices = {// position                          normal          color (unused for grid)
                                             {{-gridSize, -gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}},
                                             {{gridSize, -gridSize, 0.0f}, {0.0f, 0.0f, 1.0f}, {1.0f, 1.0f, 1.0f}},

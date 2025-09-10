@@ -332,9 +332,8 @@ namespace Mir {
         }
 
         // drawLights(view, projection);
-        glDisable(GL_DEPTH_TEST);
         m_grid.draw(view, projection);
-        glEnable(GL_DEPTH_TEST);
+
         // --- Minimap viewport setup ---
         int minimapWidth = m_windowWidth / 4;
         int minimapHeight = m_windowHeight / 4;
@@ -350,7 +349,7 @@ namespace Mir {
         glClear(GL_DEPTH_BUFFER_BIT);
         drawObjects(minimapView, minimapProjection);
         drawLights(minimapView, minimapProjection);
-        m_grid.draw(view, projection);
+       // m_grid.draw(view, projection);
     }
 
     void Playground::drawObject(const Object& object, size_t& vertexOffset, size_t& indexOffset) {
