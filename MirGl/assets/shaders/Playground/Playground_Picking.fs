@@ -15,7 +15,7 @@ void main()
 
     FragColor = vec4(r, g, b, 1.0);
 
-    // // Option 2: Simple bright colors based on ID
+    // Option 2: Simple bright colors based on ID
     // if (id == 1) FragColor = vec4(1.0, 0.0, 0.0, 1.0);      // Red
     // else if (id == 2) FragColor = vec4(0.0, 1.0, 0.0, 1.0); // Green  
     // else if (id == 3) FragColor = vec4(0.0, 0.0, 1.0, 1.0); // Blue

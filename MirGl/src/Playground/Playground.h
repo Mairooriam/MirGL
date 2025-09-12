@@ -1,4 +1,6 @@
 #pragma once
+#include <nanosvg.h>
+
 #include <glm/glm.hpp>
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
@@ -8,24 +10,20 @@
 #include "Camera.h"
 #include "DebugData.h"
 #include "DebugUI.h"
+#include "EBO.h"
 #include "Examples/IExample.h"
+#include "Grid.h"
 #include "Light.h"
 #include "Mouse.h"
 #include "Primitives.h"
+#include "State.h"
 #include "VAO.h"
 #include "VBO.h"
-#include "EBO.h"
 
-
-#include "State.h"
-
-#include "Grid.h"
 namespace Mir {
-
 
     class Playground : public IExample {
       public:
-
         Playground();
         void updateDebugData();
         DebugData dData_m;
@@ -39,10 +37,15 @@ namespace Mir {
         OrthoCamera* getOrthoCamera() { return m_orthoCamera.get(); }
         Camera* getCamera() { return m_Camera.get(); }
 
+        NSVGimage* m_image = NULL;
+
         ~Playground() override;
         void setup() override;
         void setupLights();
         void setupObjects();
+        void setupSVG();
+        void setupSVGBuffers();
+        void renderSVG(const glm::mat4& view, const glm::mat4& projection);
         void setupGrid();
         void drawGrid();
         void render() override;
@@ -50,20 +53,22 @@ namespace Mir {
         void drawObjects(const glm::mat4& view, const glm::mat4& projection);
         void drawObjectsForPicking(const glm::mat4& view, const glm::mat4& projection);
         void drawLights(const glm::mat4& view, const glm::mat4& projection);
+        void drawCubicBez(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3);
         void checkCollision(std::vector<Object>& objects, const glm::mat4& view, const glm::mat4& projection);
         void cleanup() override;
         void updateTime();
         const char* getName() const override { return "Playground"; }
         void renderUI() override;
-        
+
         glm::vec3 ScreenToWorld(float x_screen, float y_screen);
         bool useOrthoCamera = true;
         bool useVertexColorSelection = true;
 
-        //PICKING
+        // PICKING
         int getPickedObjectID(float mouseX, float mouseY);
 
         Grid m_grid;
+
       private:
         DebugUI dbUI_m;
 
@@ -87,6 +92,12 @@ namespace Mir {
         std::unique_ptr<Mir::EBO> m_EBO;
         std::unique_ptr<Mir::VAO> m_lightVAO;
         std::unique_ptr<Mir::VBO> m_lightVBO;
+
+        std::unique_ptr<Mir::VAO> m_svgVAO;
+        std::unique_ptr<Mir::VBO> m_svgVBO;
+        std::vector<glm::vec3> m_svgPoints;
+        std::unique_ptr<Shader> m_svgShader;
+
         unsigned int m_texture1, m_texture2;
 
         // SHADER
@@ -121,6 +132,6 @@ namespace Mir {
 
         // DRAG AND DROP
         DragDrop dragDrop_m;
-      };
+    };
 
 }  // namespace Mir

@@ -10,6 +10,7 @@ set(EXTERNAL_LIBS
   glm
   spdlog::spdlog
   imgui
+  nanosvg
 )
 
 set(SOURCES
@@ -73,7 +74,8 @@ file(GLOB_RECURSE SHADER_FILES_VS_PLAYGROUND CONFIGURE_DEPENDS
 
 file(GLOB_RECURSE TEXTURE_FILES CONFIGURE_DEPENDS
     "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures/*.jpg",
-    "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures/*.png"
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures/*.png",
+    "${CMAKE_CURRENT_SOURCE_DIR}/assets/textures/*.svg"
 )
 
 

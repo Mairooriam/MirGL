@@ -3,7 +3,7 @@ constexpr double PI = 3.141592653589793;
 
 namespace Mir {
 
-    int Object::nextId = 1;
+    int Object::nextId = 16777210;
 
     Circle::Circle(float radius, int segments, glm::vec3 Color) : Object(createCircleVertices(radius, segments)) {
         setPosition(glm::vec3(0.0f));

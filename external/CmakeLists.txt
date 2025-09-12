@@ -97,3 +97,9 @@ set(GLAD_LIBRARIES glad PARENT_SCOPE)
 # GLAD
 set(CMAKE_C_FLAGS ${CMAKE_C_FLAGS_OLD})
 set(CMAKE_CXX_FLAGS ${CMAKE_CXX_FLAGS_OLD})
+
+# NANOSVG
+add_library(nanosvg STATIC ${CMAKE_CURRENT_SOURCE_DIR}/nanosvg/nanosvg_impl.cpp)
+target_include_directories(nanosvg PUBLIC ${CMAKE_CURRENT_SOURCE_DIR}/nanosvg/include)
+set(NANOSVG_LIBRARIES nanosvg PARENT_SCOPE)
+
