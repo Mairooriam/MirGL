@@ -3,12 +3,13 @@
 #include <glm/gtc/type_ptr.hpp>
 #include <magic_enum/magic_enum.hpp>
 
+#include "Components/Grid.h"
+#include "Components/Light.h"
+#include "Components/Primitives.h"
 #include "DebugData.h"
-#include "Light.h"
 #include "Mouse.h"
-#include "Primitives.h"
 #include "imgui.h"
-#include "Grid.h"
+
 namespace Mir {
 
     DebugUI::DebugUI(DebugData* debugData) : data(debugData) {}
@@ -147,10 +148,8 @@ namespace Mir {
         }
     }
     void DebugUI::objects() {
-        if (data->objects) {
-            for (auto&& ob : *data->objects) {
-                object(ob);
-            }
+        for (auto& ob : *data->objects) {
+            object(*ob);
         }
     }
     void DebugUI::object(Object& object) {
@@ -164,10 +163,23 @@ namespace Mir {
             ImGui::PopStyleColor();
             ImGui::ColorEdit3("Color", (float*)&object.color);
             ImGui::DragFloat3("Position", glm::value_ptr(object.modelMatrix[3]), 0.1f);
-            ImGui::Text("Draw Mode: %s", magic_enum::enum_name(object.drawMode).data());
+            if (ImGui::BeginCombo("Draw Mode", magic_enum::enum_name(object.drawMode).data())) {
+                for (auto drawMode : magic_enum::enum_values<DrawMode>()) {
+                    bool isSelected = (object.drawMode == drawMode);
+                    if (ImGui::Selectable(magic_enum::enum_name(drawMode).data(), isSelected)) {
+                        object.drawMode = drawMode;
+                    }
+                    if (isSelected) {
+                        ImGui::SetItemDefaultFocus();
+                    }
+                }
+                ImGui::EndCombo();
+            }
+
             ImGui::Text("Vertices: %zu", object.vertices.size());
             ImGui::Text("Indices: %zu", object.indices.size());
             ImGui::Checkbox("Selected", &object.isSelected);
+
             ImGui::Separator();
             ImGui::Text("Dragged Object Vertices:");
             int vIdx = 0;
@@ -236,7 +248,5 @@ namespace Mir {
         if (ImGui::DragFloat("Fade Strength", &config.fadeStrength, 0.01f, 0.0f, 10.0f)) {
         }
         ImGui::Checkbox("Enable Fading", &config.enableFading);
-
-
     }
 }  // namespace Mir

@@ -31,11 +31,12 @@ set(SOURCES
     src/Examples/Lighting.cpp
     src/Playground/Playground.cpp
 
-    src/Playground/Primitives.cpp
     src/Playground/DebugUI.cpp
-    src/Playground/VBO.cpp
-    src/Playground/VAO.cpp
-    src/Playground/Grid.cpp
+    src/Playground/Opengl/VBO.cpp
+    src/Playground/Opengl/VAO.cpp
+    src/Playground/Components/Grid.cpp
+    src/Playground/Components/Primitives.cpp
+    src/Playground/Components/SVG.cpp
 
 
     src/Playground2/Playground2.cpp
@@ -50,6 +51,7 @@ target_compile_definitions(MirGl PRIVATE _USE_MATH_DEFINES)
 target_include_directories(MirGl PRIVATE 
   ${CMAKE_CURRENT_SOURCE_DIR}/include
   ${CMAKE_CURRENT_SOURCE_DIR}/src
+  ${CMAKE_CURRENT_SOURCE_DIR}/src/Playground 
     ${CMAKE_SOURCE_DIR}/external/glad/include 
     ${CMAKE_SOURCE_DIR}/External/magic_enum/include
   ${CMAKE_SOURCE_DIR}/external   

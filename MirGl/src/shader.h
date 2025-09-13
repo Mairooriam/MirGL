@@ -1,6 +1,6 @@
 #pragma once
 #include <glad/glad.h> 
-  
+// TODO clean up these includes :)  
 #include <string>
 #include <fstream>
 #include <sstream>

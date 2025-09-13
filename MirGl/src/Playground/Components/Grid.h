@@ -1,9 +1,9 @@
 #pragma once
 
-#include "EBO.h"
-#include "Primitives.h"
-#include "VAO.h"
-#include "VBO.h"
+#include "Opengl/EBO.h"
+#include "Components/Primitives.h"
+#include "Opengl/VAO.h"
+#include "Opengl/VBO.h"
 #include "shader.h"
 
 namespace Mir {

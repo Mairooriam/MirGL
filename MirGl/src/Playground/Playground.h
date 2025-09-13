@@ -10,16 +10,16 @@
 #include "Camera.h"
 #include "DebugData.h"
 #include "DebugUI.h"
-#include "EBO.h"
+#include "Opengl/EBO.h"
 #include "Examples/IExample.h"
-#include "Grid.h"
-#include "Light.h"
+#include "Components/Grid.h"
+#include "Components/Light.h"
 #include "Mouse.h"
-#include "Primitives.h"
+#include "Components/Primitives.h"
 #include "State.h"
-#include "VAO.h"
-#include "VBO.h"
-
+#include "Opengl/VAO.h"
+#include "Opengl/VBO.h"
+#include "Components/Svg.h"
 namespace Mir {
 
     class Playground : public IExample {
@@ -37,15 +37,15 @@ namespace Mir {
         OrthoCamera* getOrthoCamera() { return m_orthoCamera.get(); }
         Camera* getCamera() { return m_Camera.get(); }
 
-        NSVGimage* m_image = NULL;
+
 
         ~Playground() override;
         void setup() override;
+        void updateObjects();
         void setupLights();
         void setupObjects();
-        void setupSVG();
-        void setupSVGBuffers();
         void renderSVG(const glm::mat4& view, const glm::mat4& projection);
+        void drawPath(float* pts, int npts, char closed, float tol);
         void setupGrid();
         void drawGrid();
         void render() override;
@@ -54,7 +54,7 @@ namespace Mir {
         void drawObjectsForPicking(const glm::mat4& view, const glm::mat4& projection);
         void drawLights(const glm::mat4& view, const glm::mat4& projection);
         void drawCubicBez(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3);
-        void checkCollision(std::vector<Object>& objects, const glm::mat4& view, const glm::mat4& projection);
+        void checkCollision(std::vector<std::unique_ptr<Object>>& objects, const glm::mat4& view, const glm::mat4& projection);
         void cleanup() override;
         void updateTime();
         const char* getName() const override { return "Playground"; }
@@ -74,7 +74,7 @@ namespace Mir {
 
         ActiveWindow m_activeWindow = ActiveWindow::SECOND_VIEWPORT;
         AppState m_state = AppState::NONE;
-        std::vector<Object> objects_m;
+        std::vector<std::unique_ptr<Object>> objects_m;
         std::vector<Light> lights_m;
 
         // CAMERA
@@ -93,11 +93,8 @@ namespace Mir {
         std::unique_ptr<Mir::VAO> m_lightVAO;
         std::unique_ptr<Mir::VBO> m_lightVBO;
 
-        std::unique_ptr<Mir::VAO> m_svgVAO;
-        std::unique_ptr<Mir::VBO> m_svgVBO;
-        std::vector<glm::vec3> m_svgPoints;
-        std::unique_ptr<Shader> m_svgShader;
-
+        //std::unique_ptr<SVG> m_SVG;
+        std::vector<std::unique_ptr<SVG>> m_SVGs;
         unsigned int m_texture1, m_texture2;
 
         // SHADER

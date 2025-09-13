@@ -4,14 +4,16 @@
 namespace Mir {
 
     struct Vertex {
-        glm::vec3 position;  // Position (x, y, z)
-        glm::vec3 normal;
+        glm::vec3 position;                              // Position (x, y, z)
+        glm::vec3 normal = glm::vec3(0.0f, 0.0f, 1.0f);  // Normal (nx, ny, nz)
         glm::vec3 color = glm::vec3(0.5f, 0.5f, 0.5f);
         bool selected = false;
         Vertex() = default;
         Vertex(float x, float y) : position(glm::vec3(x, y, 0)), normal(glm::vec3()) {}
+        Vertex(const glm::vec3& pos) : position(pos) {}
         Vertex(const glm::vec3& pos, const glm::vec3& norm) : position(pos), normal(norm) {}
-        Vertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec3& col) : position(pos), normal(norm), color(col) {}
+        Vertex(const glm::vec3& pos, const glm::vec3& norm, const glm::vec3& col)
+            : position(pos), normal(norm), color(col) {}
     };
 
     enum class DrawMode {
@@ -36,8 +38,8 @@ namespace Mir {
 
         Object(const std::vector<Vertex>& verts)
             : id(nextId++), color(glm::vec3(1.0f)), modelMatrix(glm::mat4(1.0f)), vertices(verts), isSelected(false) {
-               updateSelectedFaces();
-            }
+            updateSelectedFaces();
+        }
 
         void setPosition(const glm::vec3& position) { modelMatrix = glm::translate(glm::mat4(1.0f), position); }
 
@@ -53,16 +55,16 @@ namespace Mir {
 
         void setDrawMode(DrawMode mode) { drawMode = mode; }
 
-
         void updateSelectedFaces() {
             if (drawMode == DrawMode::IndexedTriangles) {
                 selectedFaces.resize(indices.size() / 3, false);
             } else if (drawMode == DrawMode::TriangleFan) {
-                selectedFaces.resize(vertices.size() - 2, false);  
+                selectedFaces.resize(vertices.size() - 2, false);
             } else {
-                selectedFaces.resize(vertices.size() / 3, false); 
+                selectedFaces.resize(vertices.size() / 3, false);
             }
         }
+        virtual void update(float /*deltaTime*/ = 0.0f) {}
 
       private:
         static int nextId;
@@ -122,12 +124,23 @@ namespace Mir {
         ~Dot();
     };
 
-    class Line {
+    class Line : public Object {
       private:
-        /* data */
       public:
-        Line(/* args */);
+        Line(const glm::vec3& startPoint, const glm::vec3& endPoint);
         ~Line();
+    };
+
+    class BezierCurve : public Object {
+      private:
+        std::vector<Vertex> createCurveVertices(int segments_);
+				void updateCurve();
+
+      public:
+        glm::vec3 p0, cp1, cp2, p1;
+        BezierCurve(const glm::vec3 p0_, const glm::vec3& cp1_, const glm::vec3& cp2_, const glm::vec3& p2_);
+        ~BezierCurve();
+				void update(float dt) override { updateCurve(); };
     };
 
     struct DragDrop {

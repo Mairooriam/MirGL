@@ -3,9 +3,9 @@
 #include <stb/stb_image.h>
 
 #include "Collision.h"
+#include "Components/Primitives.h"
 #include "DebugUI.h"
 #include "Playground.h"
-#include "Primitives.h"
 #include "imgui.h"
 #include "log.h"
 #include "magic_enum/magic_enum.hpp"
@@ -96,11 +96,6 @@ namespace Mir {
         if (m_queryID == 0) {
             glGenQueries(1, &m_queryID);
         }
-        m_image = nsvgParseFromFile("nano.svg", "px", 96.0f);
-        if (m_image == NULL) {
-            printf("Could not open SVG image.\n");
-        }
-
         glEnable(GL_PROGRAM_POINT_SIZE);
 
         // SETUP CAMERA
@@ -118,12 +113,27 @@ namespace Mir {
         setupObjects();
 
         setupLights();
-
-        setupSVG();
-        setupSVGBuffers();
+        m_SVGs.push_back(std::make_unique<Mir::SVG>("nano.svg"));
         m_grid.init();
         glfwSetScrollCallback(glfwGetCurrentContext(), ScrollCallback);
         glfwSetWindowUserPointer(glfwGetCurrentContext(), this);
+    }
+
+    void Playground::updateObjects() {
+        m_VBO->bind();
+
+        // Gather all vertices from all objects
+        std::vector<Vertex> combinedVertices;
+        for (auto& object : objects_m) {
+            object->update(m_deltaTime);  // Use -> instead of .
+            combinedVertices.insert(
+                combinedVertices.end(), object->vertices.begin(), object->vertices.end());  // Use -> instead of .
+        }
+
+        // Update the whole VBO
+        m_VBO->setData(combinedVertices, GL_DYNAMIC_DRAW);
+
+        m_VBO->unbind();
     }
 
     void Playground::setupLights() {
@@ -155,24 +165,30 @@ namespace Mir {
 
     void Playground::setupObjects() {
         objects_m.clear();
-        objects_m.emplace_back(Square(glm::vec3(-10.0f, -10.0f, 0.0f), 10.0f));  // Object 1
-        objects_m.emplace_back(Square(glm::vec3(10.0f, 0.0f, 0.0f), 10.0f));     // Object 2
-        objects_m.emplace_back(Square(glm::vec3(0.0f, 10.0f, 0.0f), 10.0f));     // Object 3
-        objects_m.emplace_back(Circle(5.0, 8));
+        objects_m.emplace_back(std::make_unique<Square>(glm::vec3(-10.0f, -10.0f, 0.0f), 10.0f));  // Object 1
+        objects_m.emplace_back(std::make_unique<Square>(glm::vec3(10.0f, 0.0f, 0.0f), 10.0f));     // Object 2
+        objects_m.emplace_back(std::make_unique<Square>(glm::vec3(0.0f, 10.0f, 0.0f), 10.0f));     // Object 3
+        objects_m.push_back(std::make_unique<Circle>(5.0, 8));
+        objects_m.push_back(std::make_unique<Line>(glm::vec3(25.0f, 0.0f, 0.0f), glm::vec3(33.0f, 5.0f, 0.0f)));
+        objects_m.push_back(std::make_unique<BezierCurve>(
+            glm::vec3(-15.0f, 15.0f, 0.0f),
+            glm::vec3(-10.0f, 25.0f, 0.0f),
+            glm::vec3(10.0f, 5.0f, 0.0f),
+            glm::vec3(15.0f, 15.0f, 0.0f)));
 
-        objects_m[0].drawMode = DrawMode::Points;
+        objects_m[0]->drawMode = DrawMode::Points;
+        objects_m[0]->indices.clear();
 
-        objects_m[0].indices.clear();
-
+        // Update loops to use pointers
         std::vector<Vertex> combinedVertices;
         std::vector<unsigned int> combinedIndices;
         size_t vertexOffset = 0;
         for (const auto& object : objects_m) {
-            combinedVertices.insert(combinedVertices.end(), object.vertices.begin(), object.vertices.end());
-            for (auto idx : object.indices) {
+            combinedVertices.insert(combinedVertices.end(), object->vertices.begin(), object->vertices.end());
+            for (auto idx : object->indices) {
                 combinedIndices.push_back(idx + vertexOffset);
             }
-            vertexOffset += object.vertices.size();
+            vertexOffset += object->vertices.size();
         }
 
         m_VAO = std::make_unique<Mir::VAO>();
@@ -197,58 +213,30 @@ namespace Mir {
         m_VAO->unbind();
     }
 
-    void Playground::setupSVG() {
-        NSVGshape* shape;
-        NSVGpath* path;
-        for (shape = m_image->shapes; shape != NULL; shape = shape->next) {
-            for (path = shape->paths; path != NULL; path = path->next) {
-                for (int i = 0; i < path->npts - 1; i += 3) {
-                    float* p = &path->pts[i * 2];
-                    drawCubicBez(p[0], p[1], p[2], p[3], p[4], p[5], p[6], p[7]);
-                }
-            }
-        }
-    }
-
-    void Playground::setupSVGBuffers() {
-        if (m_svgPoints.empty()) {
-            return;
-        }
-
-        m_svgVAO = std::make_unique<Mir::VAO>();
-        m_svgVBO = std::make_unique<Mir::VBO>();
-
-        m_svgVAO->bind();
-        m_svgVBO->bind();
-
-        glBufferData(GL_ARRAY_BUFFER, m_svgPoints.size() * sizeof(glm::vec3), m_svgPoints.data(), GL_STATIC_DRAW);
-
-        glEnableVertexAttribArray(0);
-        glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, sizeof(glm::vec3), (void*)0);
-
-        m_svgVBO->unbind();
-        m_svgVAO->unbind();
-
-        m_svgShader = std::make_unique<Shader>("Playground_Simple.vs", "Playground_Simple.fs");
-    }
-
     void Playground::renderSVG(const glm::mat4& view, const glm::mat4& projection) {
-        if (!m_svgVAO || m_svgPoints.empty()) {
-            return;
-        }
-
         glDisable(GL_DEPTH_TEST);
         glLineWidth(2.0f);
 
-        m_svgShader->use();
-        m_svgShader->setMat4("view", view);
-        m_svgShader->setMat4("projection", projection);
-        m_svgShader->setMat4("model", glm::mat4(1.0f));
-        m_svgShader->setVec3("color", glm::vec3(1.0f, 0.0f, 1.0f));  
+        for (size_t i = 0; i < m_SVGs.size(); ++i) {
+            const auto& svg = m_SVGs[i];
 
-        m_svgVAO->bind();
-        glDrawArrays(GL_POINTS, 0, m_svgPoints.size());
-        m_svgVAO->unbind();
+            svg->m_svgShader->use();
+            svg->m_svgShader->setMat4("view", view);
+            svg->m_svgShader->setMat4("projection", projection);
+            svg->m_svgShader->setMat4("model", glm::mat4(1.0f));
+
+            // Optional: Different colors for different SVGs
+            glm::vec3 color = (i == 0) ? glm::vec3(1.0f, 0.0f, 1.0f) :  // Magenta for first
+                (i == 1) ? glm::vec3(0.0f, 1.0f, 0.0f)
+                         :                    // Green for second
+                glm::vec3(1.0f, 1.0f, 0.0f);  // Yellow for others
+
+            svg->m_svgShader->setVec3("color", color);
+
+            svg->m_svgVAO->bind();
+            glDrawArrays(GL_LINE_STRIP, 0, svg->m_svgPoints.size());
+            svg->m_svgVAO->unbind();
+        }
 
         glEnable(GL_DEPTH_TEST);
         glLineWidth(1.0f);
@@ -277,10 +265,27 @@ namespace Mir {
             if (dragDrop_m.isDraggingVertex && dragDrop_m.obj && dragDrop_m.vertexIdx >= 0) {
                 glm::vec3 newWorldPos = ScreenToWorld(mouse_m.screen.x, mouse_m.screen.y);
                 glm::vec3 newLocalPos = glm::inverse(dragDrop_m.obj->modelMatrix) * glm::vec4(newWorldPos, 1.0f);
-                dragDrop_m.obj->vertices[dragDrop_m.vertexIdx].position = newLocalPos;
 
-                m_VBO->updateVertex(
-                    dragDrop_m.globalVboOffset, objects_m[dragDrop_m.objectIdx].vertices[dragDrop_m.vertexIdx]);
+                // Check if this is a BezierCurve and update control points
+                if (auto* bezier = dynamic_cast<BezierCurve*>(dragDrop_m.obj)) {
+                    // Map vertex indices to control points
+                    switch (dragDrop_m.vertexIdx) {
+                        case 0: bezier->p0 = newLocalPos; break;   // First point
+                        case 1: bezier->cp1 = newLocalPos; break;  // First control point
+                        case 2: bezier->cp2 = newLocalPos; break;  // Second control point
+                        case 3: bezier->p1 = newLocalPos; break;   // Last point
+                        default:
+                            // For curve vertices, just move the vertex directly
+                            dragDrop_m.obj->vertices[dragDrop_m.vertexIdx].position = newLocalPos;
+                            break;
+                    }
+                } else {
+                    // For other objects, move vertex directly
+                    dragDrop_m.obj->vertices[dragDrop_m.vertexIdx].position = newLocalPos;
+                }
+
+                m_VBO->updateData(
+                    dragDrop_m.globalVboOffset, objects_m[dragDrop_m.objectIdx]->vertices[dragDrop_m.vertexIdx]);
             }
         }
 
@@ -358,6 +363,7 @@ namespace Mir {
         glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
         updateTime();
+        updateObjects();
         handleInput();
         updateDebugData();
         glEnable(GL_DEPTH_TEST);
@@ -381,21 +387,20 @@ namespace Mir {
         }
 
         checkCollision(objects_m, view, projection);
-        //drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
-
-        drawObjectsForPicking(view, projection);
+        drawObjects(view, projection);  // This uses your main camera (ortho or perspective)
+        //drawObjectsForPicking(view, projection);
 
         if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED)) {
             int pickedID = getPickedObjectID(mouse_m.screen.x, mouse_m.screen.y);
 
             // Update object selection based on picked ID
             for (auto& obj : objects_m) {
-                obj.isSelected = (obj.id == pickedID);
+                obj->isSelected = (obj->id == pickedID);
             }
         }
 
         // drawLights(view, projection);
-        renderSVG(view,projection);
+        renderSVG(view, projection);
         m_grid.draw(view, projection);
 
         // --- Minimap viewport setup ---
@@ -412,7 +417,7 @@ namespace Mir {
             glm::radians(m_Camera->GetZoom()), static_cast<float>(minimapWidth) / minimapHeight, 0.1f, 500.0f);
         glClear(GL_DEPTH_BUFFER_BIT);
         drawObjects(minimapView, minimapProjection);
-        renderSVG(view,projection);
+        renderSVG(view, projection);
         drawLights(minimapView, minimapProjection);
         // m_grid.draw(view, projection);
     }
@@ -457,30 +462,26 @@ namespace Mir {
             m_shader->setVec3("viewPos", m_Camera->GetPosition());
         }
 
-        // --- Use VAO abstraction for geometry ---
         m_VAO->bind();
         m_EBO->bind();
 
         size_t vertexOffset = 0;
         size_t indexOffset = 0;
         for (const auto& object : objects_m) {
-            // CAPTURE OFFSET BEFORE DRAWING
             size_t objectStartOffset = vertexOffset;
 
-            // DRAW OBJECTS
-            m_shader->setMat4("model", object.modelMatrix);
-            m_shader->setVec3("objectColor", object.color);
-            drawObject(object, vertexOffset, indexOffset);
+            m_shader->setMat4("model", object->modelMatrix);
+            m_shader->setVec3("objectColor", object->color);
+            drawObject(*object, vertexOffset, indexOffset);  // Note: pass *object to dereference
 
-            if (object.isSelected) {
+            if (object->isSelected) {
                 glDisable(GL_DEPTH_TEST);
 
-                // DRAW SELECTED VERTEX
-                for (const auto& vertex : object.vertices) {
+                for (const auto& vertex : object->vertices) {
                     if (vertex.selected) {
-                        size_t vertexIndex = &vertex - &object.vertices[0];
+                        size_t vertexIndex = &vertex - &object->vertices[0];
                         size_t globalIndex = objectStartOffset + vertexIndex;
-                        glm::mat4 model = object.modelMatrix;
+                        glm::mat4 model = object->modelMatrix;
                         m_shader->setMat4("model", model);
                         m_shader->setVec3("objectColor", glm::vec3(1.0f, 0.0f, 0.0f));
                         m_shader->setBool("isPointDrawing", true);
@@ -497,7 +498,6 @@ namespace Mir {
         m_pickingShader->setMat4("view", view);
         m_pickingShader->setMat4("projection", projection);
 
-        // --- Use VAO abstraction for geometry ---
         m_VAO->bind();
         m_EBO->bind();
         size_t vertexOffset = 0;
@@ -505,11 +505,10 @@ namespace Mir {
 
         for (const auto& object : objects_m) {
             // Set the element ID for this object
-            m_pickingShader->setInt("elementID", object.id);
-            m_pickingShader->setMat4("model", object.modelMatrix);
+            m_pickingShader->setInt("elementID", object->id);
+            m_pickingShader->setMat4("model", object->modelMatrix);
 
-            // Draw the object (same geometry, different shader)
-            drawObject(object, vertexOffset, indexOffset);
+            drawObject(*object, vertexOffset, indexOffset);
         }
 
         m_VAO->unbind();
@@ -531,42 +530,20 @@ namespace Mir {
         m_lightVAO->unbind();
     }
 
-    void Playground::drawCubicBez(float x0, float y0, float x1, float y1, float x2, float y2, float x3, float y3) {
-        // Number of segments to approximate the curve
-        const int segments = 10;
-
-        for (int i = 0; i <= segments; i++) {
-            float t = static_cast<float>(i) / segments;
-
-            // Cubic Bezier curve formula: B(t) = (1-t)³P₀ + 3(1-t)²tP₁ + 3(1-t)t²P₂ + t³P₃
-            float u = 1.0f - t;
-            float tt = t * t;
-            float uu = u * u;
-            float uuu = uu * u;
-            float ttt = tt * t;
-
-            float x = uuu * x0 + 3 * uu * t * x1 + 3 * u * tt * x2 + ttt * x3;
-            float y = uuu * y0 + 3 * uu * t * y1 + 3 * u * tt * y2 + ttt * y3;
-
-            // Scale down SVG coordinates to match your world coordinates
-            // Adjust these scale factors based on your SVG size and desired world size
-            float scale = 0.25f;
-            m_svgPoints.push_back(glm::vec3(x * scale, -y * scale, 0.0f));  // Flip Y for OpenGL
-        }
-    }
-    void Playground::checkCollision(std::vector<Object>& objects, const glm::mat4& view, const glm::mat4& projection) {
+    void Playground::checkCollision(
+        std::vector<std::unique_ptr<Object>>& objects, const glm::mat4& view, const glm::mat4& projection) {
         size_t globalOffset = 0;
 
         for (size_t objIdx = 0; objIdx < objects.size(); ++objIdx) {
             auto& object = objects[objIdx];
             bool anyVertexSelected = false;
 
-            for (size_t vertexIdx = 0; vertexIdx < object.vertices.size(); ++vertexIdx) {
-                auto& vertex = object.vertices[vertexIdx];
+            for (size_t vertexIdx = 0; vertexIdx < object->vertices.size(); ++vertexIdx) {
+                auto& vertex = object->vertices[vertexIdx];
 
                 if (Mir::isPointSelected(
                         vertex.position,
-                        object.modelMatrix,
+                        object->modelMatrix,
                         view,
                         projection,
                         m_windowWidth,
@@ -576,7 +553,7 @@ namespace Mir {
                         5.0f)) {
                     printf(
                         "Colliding with object (%i), vertex(%zu) (x,y,z): (%0.1f, %0.1f, %0.1f)\n",
-                        object.id,
+                        object->id,
                         vertexIdx,
                         vertex.position.x,
                         vertex.position.y,
@@ -586,7 +563,7 @@ namespace Mir {
                     if (mouse_m.isStateActive(MouseState::MOUSE_1_PRESSED)) {
                         dragDrop_m.isDraggingVertex = true;
                         dragDrop_m.vertexIdx = vertexIdx;
-                        dragDrop_m.obj = &object;
+                        dragDrop_m.obj = object.get();  // Get raw pointer
                         dragDrop_m.objectIdx = objIdx;
                         dragDrop_m.globalVboOffset = globalOffset;
                         vertex.color = glm::vec3(1.0f, 0.0f, 0.0f);
@@ -598,7 +575,7 @@ namespace Mir {
                 ++globalOffset;
             }
 
-            object.isSelected = anyVertexSelected;
+            object->isSelected = anyVertexSelected;
         }
     }
 

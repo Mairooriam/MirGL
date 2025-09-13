@@ -50,7 +50,7 @@ namespace Mir {
         bool showWireframe = false;
 
         // Objects
-        std::vector<Object>* objects;
+        std::vector<std::unique_ptr<Mir::Object>>* objects;
 
         // Lights control
         std::vector<Light>* lights = nullptr;
